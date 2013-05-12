@@ -5,6 +5,11 @@ using System.Text;
 using VelocityDb;
 using VelocityDb.Collection.BTree;
 using VelocityDb.Session;
+using Element = System.Int64;
+using ElementId = System.Int32;
+using PropertyTypeId = System.Int32;
+using PropertyId = System.Int32;
+using TypeId = System.Int32;
 
 namespace VelocityGraph
 {
@@ -69,6 +74,7 @@ namespace VelocityGraph
     Dictionary<string, EdgeType> stringToRestrictedEdgeType;
     EdgeType[] restrictedEdgeType;
     int nodeOrEdgeTypeCt;
+    PropertyTypeBase[] propertyType;
     [NonSerialized]
     SessionBase session;
 
@@ -81,6 +87,7 @@ namespace VelocityGraph
       edgeType = new EdgeType[0];
       stringToRestrictedEdgeType = new Dictionary<string, EdgeType>();
       restrictedEdgeType = new EdgeType[0];
+      propertyType = new PropertyTypeBase[0];
       this.session = session;
     }
 
@@ -99,7 +106,7 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="name">Unique name for the new node type.</param>
     /// <returns>Unique graph type identifier.</returns>
-    public int NewNodeType(string name)
+    public TypeId NewNodeType(string name)
     {
       NodeType aType;
       if (stringToNodeType.TryGetValue(name, out aType) == false)
@@ -121,7 +128,7 @@ namespace VelocityGraph
     /// <param name="directed">If true, this creates a directed edge type, otherwise this creates a undirected edge type.</param>
     /// <param name="neighbors">If true, this indexes neighbor nodes, otherwise not.</param>
     /// <returns>Unique type identifier.</returns>
-    public int NewEdgeType(string name, bool directed, bool neighbors)
+    public TypeId NewEdgeType(string name, bool directed, bool neighbors)
     {
       EdgeType aType;
       if (stringToEdgeType.TryGetValue(name, out aType) == false)
@@ -144,7 +151,7 @@ namespace VelocityGraph
     /// <param name="head">Head node type identifier.</param>
     /// <param name="neighbors">If true, this indexes neighbor nodes, otherwise not.</param>
     /// <returns>Unique type identifier.</returns>
-    public int NewRestrictedEdgeType(string name, int tail, int head, bool neighbors)
+    public TypeId NewRestrictedEdgeType(string name, int tail, int head, bool neighbors)
     {
       EdgeType aType;
       if (stringToRestrictedEdgeType.TryGetValue(name, out aType) == false)
@@ -169,34 +176,41 @@ namespace VelocityGraph
     /// <param name="dt">Data type for the new Property.</param>
     /// <param name="kind">Property kind.</param>
     /// <returns>Unique Property identifier.</returns>
-    public int NewProperty(int type, string name, DataType dt, PropertyKind kind)
+    public PropertyId NewProperty(int type, string name, DataType dt, PropertyKind kind)
     {
       NodeType aType = null;
       if (nodeType.Length > type)
         aType = nodeType[type];
       if (aType != null)
-        return aType.NewProperty(name, dt, kind);
-      EdgeType anEdgeType = edgeType[type];
-      return anEdgeType.NewProperty(name, dt, kind);
+        return aType.NewProperty(ref propertyType, name, dt, kind);
+      EdgeType anEdgeType = null;
+      if (edgeType.Length > type)
+        anEdgeType = edgeType[type];
+      else
+        if (restrictedEdgeType.Length > type)
+          anEdgeType = restrictedEdgeType[type];
+      if (anEdgeType != null)
+        return anEdgeType.NewProperty(ref propertyType, name, dt, kind);
+      throw new InvalidTypeIdException();
     }
 
-    public int NewProperty(int type, string name, ElementType dt, PropertyKind kind, object defaultValue)
+    public PropertyId NewProperty(TypeId type, string name, ElementType dt, PropertyKind kind, object defaultValue)
     {
       throw new NotImplementedException();
     }
 
-    public void SetProperty(long oid, int attr, object v)
+    public void SetProperty(Element element, PropertyId property, object v)
     {
-      UInt32 typeId = (UInt32) (oid >> 32);
+      TypeId typeId = (TypeId)(element >> 32);
       NodeType aType = null;
       if (nodeType.Length > typeId)
         aType = nodeType[(int) typeId];
       if (aType != null)
-        aType.SetProperty((UInt32) oid, attr, v);
+        aType.SetPropertyValue(propertyType, (TypeId)element, property, v);
       else
       {
         EdgeType anEdgeType = edgeType[(int) typeId];
-        anEdgeType.SetProperty((UInt32) oid, attr, v);
+        anEdgeType.SetPropertyValue(propertyType, (ElementId)element, property, v);
       }    
     }
 
@@ -205,7 +219,7 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="type">Node type identifier.</param>
     /// <returns>Unique OID of the new node instance.</returns>
-    public long NewNode(int type)
+    public long NewNode(TypeId type)
     {
       NodeType aType = nodeType[type];
       return (long) aType.NewNode();
@@ -218,7 +232,7 @@ namespace VelocityGraph
     /// <param name="tail">Source OID.</param>
     /// <param name="head">Target OID. </param>
     /// <returns>Unique OID of the new edge instance.</returns>
-    public long NewEdge(int type, long tail, long head)
+    public long NewEdge(TypeId type, Element tail, Element head)
     {
       ulong utail = (ulong)tail;
       UInt32 tailTypeId = (UInt32)(utail >> 32);
@@ -247,15 +261,15 @@ namespace VelocityGraph
     /// <param name="headAttr">Property identifier.</param>
     /// <param name="headV">Head value</param>
     /// <returns>Unique OID of the new edge instance.</returns>
-    public long NewEdge(int type, int tailAttr, object tailV, int headAttr, object headV)
+    public Element NewEdge(TypeId type, PropertyId tailAttr, object tailV, PropertyId headAttr, object headV)
     {
       EdgeType anEdgeType = null;
       if (edgeType.Length > type)
         anEdgeType = edgeType[type];
       if (anEdgeType != null)
-        return anEdgeType.NewEdge(tailAttr, tailV, headAttr, headV, Session);
+        return anEdgeType.NewEdge(propertyType, tailAttr, tailV, headAttr, headV, Session);
       anEdgeType = restrictedEdgeType[type];      
-      return anEdgeType.NewEdge(tailAttr, tailV, headAttr, headV, Session);
+      return anEdgeType.NewEdge(propertyType, tailAttr, tailV, headAttr, headV, Session);
     }
 
     /// <summary>
@@ -265,7 +279,7 @@ namespace VelocityGraph
     /// <param name="etype">Edge type identifier.</param>
     /// <param name="dir">Direction</param>
     /// <returns>Objects instance</returns>
-    public Objects Neighbors(long oid, int etype, EdgesDirection dir)
+    public Elements Neighbors(Element oid, TypeId etype, EdgesDirection dir)
     {
       UInt32 typeId = (UInt32) (oid >> 32);
       NodeType aNodeType = nodeType[(int) typeId];
@@ -273,9 +287,9 @@ namespace VelocityGraph
       if (edgeType.Length > etype)
         anEdgeType = edgeType[etype];
       if (anEdgeType != null)
-        return aNodeType.Neighbors((uint)oid, anEdgeType, dir);
+        return aNodeType.Neighbors((ElementId)oid, anEdgeType, dir);
       anEdgeType = restrictedEdgeType[etype];
-      return aNodeType.Neighbors((uint)oid, anEdgeType, dir);
+      return aNodeType.Neighbors((ElementId)oid, anEdgeType, dir);
     }
 
     /// <summary>
@@ -285,32 +299,48 @@ namespace VelocityGraph
     /// <param name="etype">Edge type identifier.</param>
     /// <param name="dir">Direction.</param>
     /// <returns>All neighbor nodes collection</returns>
-    public Objects Neighbors(Objects objs, int etype, EdgesDirection dir)
+    public Elements Neighbors(Elements objs, TypeId etype, EdgesDirection dir)
     {
-      Objects result = new Objects();
+      Elements result = new Elements();
       foreach (long oid in objs)
       {
-        Objects t = Neighbors(oid, etype, dir);
+        Elements t = Neighbors(oid, etype, dir);
         result.Union(t);
       }
       return result;
     }
 
     /// <summary>
+    /// Finds one object having the given value for the given property. 
+    /// </summary>
+    /// <param name="property"></param>
+    /// <param name="v"></param>
+    /// <returns>the Oid of the object matching</returns>
+    public Element FindElement(PropertyId property, object v)
+    {
+      if (propertyType.Length <= property)
+        throw new InvalidPropertyIdException();
+      PropertyTypeBase aPropertyType = propertyType[property];
+      long obj = aPropertyType.TypeId;
+      obj = obj << 32;
+      return obj + aPropertyType.GetPropertyElementId(v);
+    }
+
+    /// <summary>
     /// Gets the Value for the given Property and OID.
     /// </summary>
     /// <param name="oid">OID</param>
-    /// <param name="attr">Property type identifier.</param>
+    /// <param name="property">Property type identifier.</param>
     /// <param name="v">Value for the given Property and for the given OID.</param>
-    public object GetProperty(long oid, int attr)
+    public object GetProperty(Element oid, PropertyId property)
     {
-      UInt32 typeId = (UInt32)(oid >> 32);
+      TypeId typeId = (TypeId)(oid >> 32);
       NodeType aNodeType = null;
       if (nodeType.Length > typeId)
         aNodeType = nodeType[(int)typeId];
       if (aNodeType != null)
       {
-        return aNodeType.GetProperty((uint)oid, attr);
+        return aNodeType.GetPropertyValue(propertyType, (PropertyTypeId) oid, property);
       }
       else
       {
@@ -318,11 +348,11 @@ namespace VelocityGraph
         if (edgeType.Length > typeId)
           anEdgeType = edgeType[typeId];
         if (anEdgeType != null)
-          return anEdgeType.GetProperty((uint)oid, attr);
+          return anEdgeType.GetPropertyValue(propertyType, (PropertyTypeId)oid, property);
         else
         {
           anEdgeType = restrictedEdgeType[typeId];
-          return anEdgeType.GetProperty((uint)oid, attr);
+          return anEdgeType.GetPropertyValue(propertyType, (PropertyTypeId)oid, property);
         }
       }
     }
@@ -337,48 +367,48 @@ namespace VelocityGraph
       return edgeType.Length + restrictedEdgeType.Length;
     }
 
-    public EdgeData GetEdgeData(long edge)
+    public EdgeData GetEdgeData(Element edge)
     {
       throw new NotImplementedException();
     }
 
-    public long GetEdgePeer(long edge, long node)
+    public long GetEdgePeer(Element edge, long node)
     {
       throw new NotImplementedException();
     }
 
-    public void Drop(long oid)
+    public void Drop(Element oid)
     {
       throw new NotImplementedException();
     }
 
-    public void Drop(Objects objs)
+    public void Drop(Elements objs)
     {
       throw new NotImplementedException();
     }
 
-    public int GetObjectType(long oid)
+    public TypeId GetObjectType(Element oid)
     {
-      int typeId = (int) (oid >> 32);
+      TypeId typeId = (TypeId) (oid >> 32);
       return typeId;
     }
 
-    public int NewSessionProperty(int type, DataType dt, PropertyKind kind)
+    public int NewSessionProperty(TypeId type, DataType dt, PropertyKind kind)
     {
       throw new NotImplementedException();
     }
 
-    public int NewSessionProperty(int type, DataType dt, PropertyKind kind, object defaultValue)
+    public int NewSessionProperty(TypeId type, DataType dt, PropertyKind kind, object defaultValue)
     {
       throw new NotImplementedException();
     }
 
-    public void SetPropertyDefaultValue(int attr, object v)
+    public void SetPropertyDefaultValue(PropertyId property, object v)
     {
       throw new NotImplementedException();
     }
 
-    public void IndexProperty(int attr, PropertyKind kind)
+    public void IndexProperty(PropertyId property, PropertyKind kind)
     {
       throw new NotImplementedException();
     }
@@ -388,17 +418,30 @@ namespace VelocityGraph
       throw new NotImplementedException();
     }*/
 
-    public long GetPropertyIntervalCount(int attr, object lower, bool includeLower, object higher, bool includeHigher)
+    public long GetPropertyIntervalCount(PropertyId attr, object lower, bool includeLower, object higher, bool includeHigher)
     {
       throw new NotImplementedException();
     }
 
-    public int FindType(string name)
+    /// <summary>
+    /// Finds the type id associated with a particular edge/node type. Lookup by name.
+    /// </summary>
+    /// <param name="name">The name of the edge/node type being looked up</param>
+    /// <returns>A node/edge type id or -1 if not found.</returns>
+    public TypeId FindType(string name)
     {
-      throw new NotImplementedException();
+      EdgeType eType;
+      if (stringToRestrictedEdgeType.TryGetValue(name, out eType))
+        return eType.TypeId;
+      if (stringToEdgeType.TryGetValue(name, out eType))
+        return eType.TypeId;
+      NodeType nType;
+      if (stringToNodeType.TryGetValue(name, out nType))
+        return nType.TypeId;
+      return -1;
     }
 
-    public ElementType GetType(int type)
+    public ElementType GetType(TypeId type)
     {
       throw new NotImplementedException();
     }
@@ -408,77 +451,85 @@ namespace VelocityGraph
       throw new NotImplementedException();
     }
 
-    public int FindProperty(int type, string name)
+    public int FindProperty(TypeId type, string name)
+    {
+       NodeType aType = null;
+      if (nodeType.Length > type)
+        aType = nodeType[type];
+      if (aType != null)
+        return aType.FindProperty(name);
+      EdgeType anEdgeType = null;
+      if (edgeType.Length > type)
+        anEdgeType = edgeType[type];
+      else
+        if (restrictedEdgeType.Length > type)
+          anEdgeType = restrictedEdgeType[type];
+      if (anEdgeType != null)
+        return anEdgeType.FindProperty(name);
+      throw new InvalidTypeIdException();
+    }
+
+    public Property GetProperty(PropertyId attr)
     {
       throw new NotImplementedException();
     }
 
-    public Property GetProperty(int attr)
+    public void RemoveProperty(PropertyId attr)
     {
       throw new NotImplementedException();
     }
 
-    public void RemoveProperty(int attr)
+    public Elements Select(TypeId type)
     {
       throw new NotImplementedException();
     }
 
-    public long FindObject(int attr, object v)
+    public Elements Select(PropertyId attr, Condition cond, object v)
     {
       throw new NotImplementedException();
     }
 
-    public Objects Select(int type)
+    public Elements Select(PropertyId attr, Condition cond, object lower, object higher)
     {
       throw new NotImplementedException();
     }
 
-    public Objects Select(int attr, Condition cond, object v)
+    public Elements Explode(Element oid, TypeId etype, EdgesDirection dir)
     {
       throw new NotImplementedException();
     }
 
-    public Objects Select(int attr, Condition cond, object lower, object higher)
+    public Elements Explode(Elements objs, TypeId etype, EdgesDirection dir)
     {
       throw new NotImplementedException();
     }
 
-    public Objects Explode(long oid, int etype, EdgesDirection dir)
+    public long Degree(Element oid, TypeId etype, EdgesDirection dir)
     {
       throw new NotImplementedException();
     }
 
-    public Objects Explode(Objects objs, int etype, EdgesDirection dir)
+    public Elements Edges(TypeId etype, Element tail, Element head)
     {
       throw new NotImplementedException();
     }
 
-    public long Degree(long oid, int etype, EdgesDirection dir)
+    public Element FindEdge(TypeId etype, Element tail, Element head)
     {
       throw new NotImplementedException();
     }
 
-    public Objects Edges(int etype, long tail, long head)
+    public Elements Tails(Elements edges)
     {
       throw new NotImplementedException();
     }
 
-    public long FindEdge(int etype, long tail, long head)
+    public Elements Heads(Elements edges)
     {
       throw new NotImplementedException();
     }
 
-    public Objects Tails(Objects edges)
-    {
-      throw new NotImplementedException();
-    }
-
-    public Objects Heads(Objects edges)
-    {
-      throw new NotImplementedException();
-    }
-
-    public void TailsAndHeads(Objects edges, Objects tails, Objects heads)
+    public void TailsAndHeads(Elements edges, Elements tails, Elements heads)
     {
       throw new NotImplementedException();
     }
@@ -498,17 +549,17 @@ namespace VelocityGraph
       throw new NotImplementedException();
     }
 
-    public Property[] FindProperties(int type)
+    public Property[] FindProperties(TypeId type)
     {
       throw new NotImplementedException();
     }
 
-    public Property[] GetProperties(long oid)
+    public Property[] GetProperties(Element oid)
     {
       throw new NotImplementedException();
     }
 
-    public object[] GetValues(int attr)
+    public object[] GetValues(PropertyId property)
     {
       throw new NotImplementedException();
     }

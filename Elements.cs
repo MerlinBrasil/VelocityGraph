@@ -5,13 +5,13 @@ using System.Collections.Generic;
 
 namespace VelocityGraph
 {
-	public class Objects : IEnumerable, IEnumerable<long>
+	public class Elements : IEnumerable, IEnumerable<long>
 	{
-    HashSet<long> theObjects;
+    HashSet<long> theElements;
 
-    public Objects()
+    public Elements()
     {
-      theObjects = new HashSet<long>();
+      theElements = new HashSet<long>();
     }
 
 		public static long InvalidOID
@@ -25,32 +25,32 @@ namespace VelocityGraph
 
 		public override bool Equals(object obj)
 		{
-			return obj is Objects && this.Equals((Objects)obj);
+			return obj is Elements && this.Equals((Elements)obj);
 		}
 
 		public override int GetHashCode()
 		{
-      return theObjects.GetHashCode();
+      return theElements.GetHashCode();
 		}
 
     IEnumerator<long> IEnumerable<long>.GetEnumerator()
     {
-      return theObjects.GetEnumerator();
+      return theElements.GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-      return theObjects.GetEnumerator();
+      return theElements.GetEnumerator();
     }
 		/// <summary>
     /// Creates a new Objects instance as a copy of the current one. 
 		/// </summary>
 		/// <returns>The new (copy) instance</returns>
-    public Objects Copy()
+    public Elements Copy()
 		{
-      Objects result = new Objects();
-      foreach (long l in theObjects)
-        result.theObjects.Add(l);
+      Elements result = new Elements();
+      foreach (long l in theElements)
+        result.theElements.Add(l);
 			return result;
 		}
 
@@ -62,7 +62,7 @@ namespace VelocityGraph
 		{
       get
       {
-        return (long)theObjects.Count;
+        return (long)theElements.Count;
       }
 		}
 
@@ -73,7 +73,7 @@ namespace VelocityGraph
     /// <returns>true if the element is added, false if the element was already into the collection.</returns>
 		public bool Add(long e)
 		{
-      return theObjects.Add(e);
+      return theElements.Add(e);
 		}
 
     /// <summary>
@@ -83,7 +83,7 @@ namespace VelocityGraph
     /// <returns>true if node/edge found, otherwise false.</returns>
 		public bool Exists(long e)
 		{
-      return theObjects.Contains(e);
+      return theElements.Contains(e);
 		}
 
     /// <summary>
@@ -92,7 +92,7 @@ namespace VelocityGraph
     /// <returns>Any node/edge from the collection.</returns>
 		public long Any()
 		{
-      foreach (long l in theObjects)
+      foreach (long l in theElements)
         return l;
       return 0;
 		}
@@ -104,7 +104,7 @@ namespace VelocityGraph
     /// <returns>true if element found and removed from the collection, otherwise false.</returns>
 		public bool Remove(long e)
 		{
-      return theObjects.Remove(e);
+      return theElements.Remove(e);
 		}
 
 		/// <summary>
@@ -112,40 +112,40 @@ namespace VelocityGraph
 		/// </summary>
     public void Clear()
 		{
-      theObjects.Clear();
+      theElements.Clear();
 		}
 
     /// <summary>
-    /// Performs the union operation. This adds all existing elements of the parameter Objects instance to this instance.
+    /// Performs the union operation. This adds all existing elements of the parameter Elements instance to this instance.
     /// </summary>
-    /// <param name="objs">The Objects instance forming union with.</param>
+    /// <param name="objs">The Elements instance forming union with.</param>
     /// <returns>Number of elements into the collection once the operation has been executed.</returns>
-		public long Union(Objects objs)
+		public long Union(Elements objs)
 		{
-      theObjects.UnionWith(objs.theObjects);
-      return (long) theObjects.Count;
+      theElements.UnionWith(objs.theElements);
+      return (long) theElements.Count;
 		}
 
     /// <summary>
-    /// Updates the Objects calling instance setting those existing elements at both two collections and removing all others.
+    /// Updates the Elements calling instance setting those existing elements at both two collections and removing all others.
     /// </summary>
-    /// <param name="objs">The Objects instance forming intersection with.</param>
+    /// <param name="objs">The Elements instance forming intersection with.</param>
     /// <returns>Number of elements into the collection once the operation has been executed.</returns>
-		public long Intersection(Objects objs)
+		public long Intersection(Elements objs)
 		{
-      theObjects.IntersectWith(objs.theObjects);
-      return (long)theObjects.Count;
+      theElements.IntersectWith(objs.theElements);
+      return (long)theElements.Count;
 		}
 
     /// <summary>
-    /// Performs the difference operation. This updates the Objects calling instance removing those existing elements at the given Objects instance.
+    /// Performs the difference operation. This updates the Elements calling instance removing those existing elements at the given Elements instance.
     /// </summary>
-    /// <param name="objs">The Objects instance performing difference with.</param>
+    /// <param name="objs">The Elements instance performing difference with.</param>
     /// <returns>Number of elements into the collection once the operation has been executed.</returns>
-		public long Difference(Objects objs)
+		public long Difference(Elements objs)
 		{
-      theObjects.ExceptWith(objs.theObjects);
-      return (long)theObjects.Count;
+      theElements.ExceptWith(objs.theElements);
+      return (long)theElements.Count;
 		}
 
 		/// <summary>
@@ -153,9 +153,9 @@ namespace VelocityGraph
 		/// </summary>
     /// <param name="objs">The object to compare with the current object.</param>
 		/// <returns>true if the specified object is equal to the current object; otherwise, false.</returns>
-    public bool Equals(Objects objs)
+    public bool Equals(Elements objs)
 		{
-      return theObjects.Equals(objs.theObjects);
+      return theElements.Equals(objs.theElements);
 		}
 
     /// <summary>
@@ -163,38 +163,38 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="objs">The object to compare with the current object.</param>
     /// <returns>true if current object contains the specified element; otherwise, false.</returns>
-		public bool Contains(Objects objs)
+		public bool Contains(Elements objs)
 		{
-      return theObjects.IsSupersetOf(objs.theObjects);
+      return theElements.IsSupersetOf(objs.theElements);
 		}
 
-		public static Objects CombineUnion(Objects objs1, Objects objs2)
+		public static Elements CombineUnion(Elements objs1, Elements objs2)
 		{
-      Objects clone = objs1.Copy();
+      Elements clone = objs1.Copy();
       clone.Union(objs2);
       return clone;
 		}
 
-		public static Objects CombineIntersection(Objects objs1, Objects objs2)
+		public static Elements CombineIntersection(Elements objs1, Elements objs2)
 		{
-      Objects clone = objs1.Copy();
+      Elements clone = objs1.Copy();
       clone.Intersection(objs2);
       return clone;
 		}
 
-		public static Objects CombineDifference(Objects objs1, Objects objs2)
+		public static Elements CombineDifference(Elements objs1, Elements objs2)
 		{
-      Objects clone = objs1.Copy();
+      Elements clone = objs1.Copy();
       clone.Difference(objs2);
       return clone;
 		}
 
-		public long Copy(Objects objs)
+		public long Copy(Elements objs)
 		{
       throw new NotImplementedException();
 		}
 
-		public Objects Sample(Objects exclude, long samples)
+		public Elements Sample(Elements exclude, long samples)
 		{
       throw new NotImplementedException();
 		}

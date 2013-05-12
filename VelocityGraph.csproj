@@ -43,8 +43,11 @@
     <Compile Include="EdgeData.cs" />
     <Compile Include="EdgeType.cs" />
     <Compile Include="ElementType.cs" />
+    <Compile Include="InvalidPropertyIdException.cs" />
+    <Compile Include="InvalidTypeIdException.cs" />
+    <Compile Include="NamespaceDoc.cs" />
     <Compile Include="NodeType.cs" />
-    <Compile Include="Objects.cs" />
+    <Compile Include="Elements.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Property.cs" />
     <Compile Include="PropertyType.cs" />

@@ -10,7 +10,7 @@ namespace VelocityGraph
 		{
       get
       {
-        return 0;
+        return -1;
       }
 		}
 

@@ -4,46 +4,52 @@ using System.Linq;
 using System.Text;
 using VelocityDb.Collection.BTree;
 using VelocityDb.Session;
+using Element = System.Int64;
+using ElementId = System.Int32;
+using PropertyTypeId = System.Int32;
+using PropertyId = System.Int32;
+using TypeId = System.Int32;
+
 
 namespace VelocityGraph
 {
   public class PropertyType<T> : PropertyTypeBase
   {
-    Dictionary<UInt32, T> propertyValue;
-    BTreeMap<T, UInt32[]> valueIndex;
-    BTreeMap<T, UInt32> valueIndexUnique;
+    Dictionary<ElementId, T> propertyValue;
+    BTreeMap<T, ElementId[]> valueIndex;
+    BTreeMap<T, ElementId> valueIndexUnique;
 
-    public PropertyType(int typeId, string name, PropertyKind kind, SessionBase session)
-      : base(typeId, name)
+    public PropertyType(TypeId typeId, PropertyId propertyId, string name, PropertyKind kind, SessionBase session)
+      : base(typeId, propertyId, name)
     {
-      propertyValue = new Dictionary<uint, T>();
+      propertyValue = new Dictionary<ElementId, T>();
       switch (kind)
       {
         case PropertyKind.Indexed:
-          valueIndex = new BTreeMap<T, UInt32[]>(null, session);
+          valueIndex = new BTreeMap<T, ElementId[]>(null, session);
           break;
         case PropertyKind.Unique:
-          valueIndexUnique = new BTreeMap<T, uint>(null, session);
+          valueIndexUnique = new BTreeMap<T, ElementId>(null, session);
           break;
       }
     }
 
-    T GetPropertyT(uint oid)
+    T GetPropertyValueT(ElementId oid)
     {
       T pv = propertyValue[oid];
       return pv;
     }
 
-    void SetPropertyX(uint oid, T aValue)
+    void SetPropertyValueX(ElementId element, T aValue)
     {
       Update();
-      propertyValue[oid] = aValue;
+      propertyValue[element] = aValue;
       if (valueIndex != null)
       {
-        UInt32[] oidArray = new UInt32[1];
+        ElementId[] oidArray = new ElementId[1];
         if (!valueIndex.TryGetKey(aValue, ref aValue))
         {
-          oidArray[0] = oid;
+          oidArray[0] = element;
           valueIndex.Add(aValue, oidArray);
         }
         else
@@ -51,21 +57,37 @@ namespace VelocityGraph
           oidArray = valueIndex[aValue];
           int pos = oidArray.Length;
           Array.Resize(ref oidArray, pos + 1);
-          oidArray[pos] = oid;
+          oidArray[pos] = element;
         }
       }
       else if (valueIndexUnique != null)
-        valueIndexUnique.Add(aValue, oid);
+        valueIndexUnique.Add(aValue, element);
     }
 
-    public override object GetProperty(uint oid)
+    public ElementId GetPropertyElementId(T value)
     {
-      return GetPropertyT(oid);
+      ElementId elementId;
+      if (valueIndexUnique != null && valueIndexUnique.TryGetValue(value, out elementId))
+        return elementId;
+      ElementId[] elementIds;
+      if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
+        return elementIds[0];
+      return -1;
     }
 
-    public override void SetProperty(uint oid, object aValue)
+    public override ElementId GetPropertyElementId(object value)
     {
-      SetPropertyX(oid, (T)aValue);
+      return GetPropertyElementId((T) value);
+    }
+
+    public override object GetPropertyValue(ElementId element)
+    {
+      return GetPropertyValueT(element);
+    }
+
+    public override void SetPropertyValue(ElementId element, object value)
+    {
+      SetPropertyValueX(element, (T)value);
     }
   }
 }

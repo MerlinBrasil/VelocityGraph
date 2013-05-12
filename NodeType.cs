@@ -5,83 +5,86 @@ using System.Text;
 using VelocityDb;
 using VelocityDb.Collection.BTree;
 using VelocityDb.Session;
+using Element = System.Int64;
+using ElementId = System.Int32;
+using PropertyTypeId = System.Int32;
+using PropertyId = System.Int32;
+using TypeId = System.Int32;
 
 namespace VelocityGraph
 {
   class NodeType : OptimizedPersistable
   {
     string typeName;
-    UInt32 typeId;
+    TypeId typeId;
     Dictionary<string, PropertyTypeBase> stringToPropertyType;
-    Dictionary<EdgeType, BTreeMap<NodeType, BTreeMap<UInt32, BTreeSet<uint>>>> tailToHeadEdges;
-    Dictionary<EdgeType, BTreeMap<NodeType, BTreeMap<UInt32, BTreeSet<uint>>>> headToTailEdges;
-    PropertyTypeBase[] propertyType;
+    Dictionary<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>> tailToHeadEdges;
+    Dictionary<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>> headToTailEdges;
     UInt32 nodeCt;
 
-    public NodeType(int aTypeId, string aTypeName, SessionBase session)
+    public NodeType(TypeId aTypeId, string aTypeName, SessionBase session)
     {
-      typeId = (UInt32)aTypeId;
+      typeId = (TypeId)aTypeId;
       typeName = aTypeName;
       stringToPropertyType = new Dictionary<string, PropertyTypeBase>();
-      propertyType = new PropertyTypeBase[0];
-      tailToHeadEdges = new Dictionary<EdgeType, BTreeMap<NodeType, BTreeMap<uint, BTreeSet<uint>>>>();
-      headToTailEdges = new Dictionary<EdgeType, BTreeMap<NodeType, BTreeMap<uint, BTreeSet<uint>>>>();
+      tailToHeadEdges = new Dictionary<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>>();
+      headToTailEdges = new Dictionary<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>>();
       nodeCt = 0;
     }
 
-    public void NewTailToHeadEdge(EdgeType edgeType, uint tail, uint head, NodeType headType, SessionBase session)
+    public void NewTailToHeadEdge(EdgeType edgeType, ElementId tail, ElementId head, NodeType headType, SessionBase session)
     {
-      BTreeMap<NodeType, BTreeMap<uint, BTreeSet<uint>>> map;
-      BTreeMap<uint, BTreeSet<uint>> innerMap;
-      BTreeSet<uint> set;
+      BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> map;
+      BTreeMap<ElementId, BTreeSet<ElementId>> innerMap;
+      BTreeSet<ElementId> set;
       if (!tailToHeadEdges.TryGetValue(edgeType, out map))
       {
-        map = new BTreeMap<NodeType, BTreeMap<uint, BTreeSet<uint>>>(null, session);
-        innerMap = new BTreeMap<uint, BTreeSet<uint>>(null, session);
-        set = new BTreeSet<uint>(null, session);
+        map = new BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>(null, session);
+        innerMap = new BTreeMap<ElementId, BTreeSet<ElementId>>(null, session);
+        set = new BTreeSet<ElementId>(null, session);
         innerMap.Add(tail, set);
         map.Add(headType, innerMap);
         tailToHeadEdges.Add(edgeType, map);
       }
       else if (!map.TryGetValue(headType, out innerMap))
       {
-        innerMap = new BTreeMap<uint, BTreeSet<uint>>(null, session);
-        set = new BTreeSet<uint>(null, session);
+        innerMap = new BTreeMap<ElementId, BTreeSet<ElementId>>(null, session);
+        set = new BTreeSet<ElementId>(null, session);
         innerMap.Add(tail, set);
         map.Add(headType, innerMap);
       }
       else if (!innerMap.TryGetValue(tail, out set))
       {
-        set = new BTreeSet<uint>(null, session);
+        set = new BTreeSet<ElementId>(null, session);
         innerMap.Add(tail, set);
       }
       set.Add(head);
     }
 
-    public void NewHeadToTailEdge(EdgeType edgeType, uint tail, uint head, NodeType tailType, SessionBase session)
+    public void NewHeadToTailEdge(EdgeType edgeType, ElementId tail, ElementId head, NodeType tailType, SessionBase session)
     {
-      BTreeMap<NodeType, BTreeMap<uint, BTreeSet<uint>>> map;
-      BTreeMap<uint, BTreeSet<uint>> innerMap;
-      BTreeSet<uint> set;
+      BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> map;
+      BTreeMap<ElementId, BTreeSet<ElementId>> innerMap;
+      BTreeSet<ElementId> set;
       if (!headToTailEdges.TryGetValue(edgeType, out map))
       {
-        map = new BTreeMap<NodeType, BTreeMap<uint, BTreeSet<uint>>>(null, session);
-        innerMap = new BTreeMap<uint, BTreeSet<uint>>(null, session);
-        set = new BTreeSet<uint>(null, session);
+        map = new BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>(null, session);
+        innerMap = new BTreeMap<ElementId, BTreeSet<ElementId>>(null, session);
+        set = new BTreeSet<ElementId>(null, session);
         innerMap.Add(tail, set);
         map.Add(tailType, innerMap);
         headToTailEdges.Add(edgeType, map);
       }
       else if (!map.TryGetValue(tailType, out innerMap))
       {
-        innerMap = new BTreeMap<uint, BTreeSet<uint>>(null, session);
-        set = new BTreeSet<uint>(null, session);
+        innerMap = new BTreeMap<ElementId, BTreeSet<ElementId>>(null, session);
+        set = new BTreeSet<ElementId>(null, session);
         innerMap.Add(tail, set);
         map.Add(tailType, innerMap);
       }
       else if (!innerMap.TryGetValue(tail, out set))
       {
-        set = new BTreeSet<uint>(null, session);
+        set = new BTreeSet<ElementId>(null, session);
         innerMap.Add(tail, set);
       }
       set.Add(head);
@@ -90,33 +93,33 @@ namespace VelocityGraph
     public UInt64 NewNode()
     {
       Update();
-      UInt64 nodeId = typeId;
+      UInt64 nodeId = (UInt64) typeId;
       nodeId <<= 32;
       nodeId += nodeCt++;
       return nodeId;
     }
 
-    public Objects Neighbors(UInt32 oid, EdgeType etype, EdgesDirection dir)
+    public Elements Neighbors(ElementId oid, EdgeType etype, EdgesDirection dir)
     {
-      Objects result = new Objects();
-      BTreeMap<NodeType, BTreeMap<uint, BTreeSet<uint>>> map;
-      BTreeSet<uint> set;
+      Elements result = new Elements();
+      BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> map;
+      BTreeSet<ElementId> set;
       switch (dir)
       {
         case EdgesDirection.Outgoing:
           if (tailToHeadEdges.TryGetValue(etype, out map))
           {
-            foreach (KeyValuePair<NodeType, BTreeMap<uint, BTreeSet<uint>>> pair in map)
+            foreach (KeyValuePair<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> pair in map)
             {
-              BTreeMap<uint, BTreeSet<uint>> innerMap = pair.Value;
+              BTreeMap<ElementId, BTreeSet<ElementId>> innerMap = pair.Value;
               if (innerMap.TryGetValue(oid, out set))
               {
                 foreach (uint u in set)
                 {
-                  UInt64 otherId = (UInt64)pair.Key.TypeId;
+                  Element otherId = (Element)pair.Key.TypeId;
                   otherId <<= 32;
                   otherId += u;
-                  result.Add((long)otherId);
+                  result.Add((Element)otherId);
                 }
               }
             }
@@ -125,17 +128,17 @@ namespace VelocityGraph
         case EdgesDirection.Ingoing:
           if (headToTailEdges.TryGetValue(etype, out map))
           {
-            foreach (KeyValuePair<NodeType, BTreeMap<uint, BTreeSet<uint>>> pair in map)
+            foreach (KeyValuePair<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> pair in map)
             {
-              BTreeMap<uint, BTreeSet<uint>> innerMap = pair.Value;
+              BTreeMap<ElementId, BTreeSet<ElementId>> innerMap = pair.Value;
               if (innerMap.TryGetValue(oid, out set))
               {
-                foreach (uint u in set)
+                foreach (ElementId u in set)
                 {
-                  UInt64 otherId = (UInt64)pair.Key.TypeId;
+                  Element otherId = (Element)pair.Key.TypeId;
                   otherId <<= 32;
                   otherId += u;
-                  result.Add((long)otherId);
+                  result.Add(otherId);
                 }
               }
             }
@@ -144,9 +147,9 @@ namespace VelocityGraph
         case EdgesDirection.Any:
           if (tailToHeadEdges.TryGetValue(etype, out map))
           {
-            foreach (KeyValuePair<NodeType, BTreeMap<uint, BTreeSet<uint>>> pair in map)
+            foreach (KeyValuePair<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> pair in map)
             {
-              BTreeMap<uint, BTreeSet<uint>> innerMap = pair.Value;
+              BTreeMap<ElementId, BTreeSet<ElementId>> innerMap = pair.Value;
               if (innerMap.TryGetValue(oid, out set))
               {
                 foreach (uint u in set)
@@ -161,17 +164,17 @@ namespace VelocityGraph
           }
           if (headToTailEdges.TryGetValue(etype, out map))
           {
-            foreach (KeyValuePair<NodeType, BTreeMap<uint, BTreeSet<uint>>> pair in map)
+            foreach (KeyValuePair<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> pair in map)
             {
-              BTreeMap<uint, BTreeSet<uint>> innerMap = pair.Value;
+              BTreeMap<ElementId, BTreeSet<ElementId>> innerMap = pair.Value;
               if (innerMap.TryGetValue(oid, out set))
               {
-                foreach (uint u in set)
+                foreach (ElementId u in set)
                 {
-                  UInt64 otherId = (UInt64)pair.Key.TypeId;
+                  Element otherId = (Element)pair.Key.TypeId;
                   otherId <<= 32;
                   otherId += u;
-                  result.Add((long)otherId);
+                  result.Add(otherId);
                 }
               }
             }
@@ -188,7 +191,7 @@ namespace VelocityGraph
     /// <param name="dt">Data type for the new Property.</param>
     /// <param name="kind">Property kind.</param>
     /// <returns>Unique Property identifier.</returns>
-    public int NewProperty(string name, DataType dt, PropertyKind kind)
+    public PropertyId NewProperty(ref PropertyTypeBase[] propertyType, string name, DataType dt, PropertyKind kind)
     {
       PropertyTypeBase aType;
       if (stringToPropertyType.TryGetValue(name, out aType) == false)
@@ -198,54 +201,64 @@ namespace VelocityGraph
         switch (dt)
         {
           case DataType.Boolean:
-            aType = new PropertyType<bool>(pos, name, kind, Session);
+            aType = new PropertyType<bool>(typeId, pos, name, kind, Session);
             break;
           case DataType.Integer:
-            aType = new PropertyType<int>(pos, name, kind, Session);
+            aType = new PropertyType<int>(typeId,pos, name, kind, Session);
             break;
           case DataType.Long:
-            aType = new PropertyType<long>(pos, name, kind, Session);
+            aType = new PropertyType<long>(typeId,pos, name, kind, Session);
             break;
           case DataType.Double:
-            aType = new PropertyType<double>(pos, name, kind, Session);
+            aType = new PropertyType<double>(typeId,pos, name, kind, Session);
             break;
           case DataType.DateTime:
-            aType = new PropertyType<DateTime>(pos, name, kind, Session);
+            aType = new PropertyType<DateTime>(typeId,pos, name, kind, Session);
             break;
           case DataType.String:
-            aType = new PropertyType<string>(pos, name, kind, Session);
+            aType = new PropertyType<string>(typeId,pos, name, kind, Session);
             break;
           case DataType.Object:
-            aType = new PropertyType<object>(pos, name, kind, Session);
+            aType = new PropertyType<object>(typeId,pos, name, kind, Session);
             break;
           case DataType.OID:
-            aType = new PropertyType<long>(pos, name, kind, Session);
+            aType = new PropertyType<long>(typeId,pos, name, kind, Session);
             break;
         }
         propertyType[pos] = aType;
         stringToPropertyType.Add(name, aType);
       }
-      return aType.PropertyTypeId;
+      return aType.PropertyId;
     }
 
-    public int TypeId
+    public TypeId TypeId
     {
       get
       {
-        return (int)typeId;
+        return (TypeId)typeId;
       }
     }
 
-    public object GetProperty(uint oid, int attr)
+    public PropertyId FindProperty(string name)
     {
-      PropertyTypeBase anPropertyType = propertyType[attr];
-      return anPropertyType.GetProperty(oid);
+      PropertyTypeBase anPropertyType;
+      if (stringToPropertyType.TryGetValue(name, out anPropertyType))
+      {
+        return anPropertyType.PropertyId;
+      }
+      return -1;
     }
 
-    public void SetProperty(UInt32 oid, int attr, object v)
+    public object GetPropertyValue(PropertyTypeBase[] propertyType, ElementId elementId, PropertyId propertyId)
     {
-      PropertyTypeBase anPropertyType = propertyType[attr];
-      anPropertyType.SetProperty(oid, v);
+      PropertyTypeBase anPropertyType = propertyType[propertyId];
+      return anPropertyType.GetPropertyValue(elementId);
+    }
+
+    public void SetPropertyValue(PropertyTypeBase[] propertyType, ElementId elementId, PropertyId propertyId, object v)
+    {
+      PropertyTypeBase anPropertyType = propertyType[propertyId];
+      anPropertyType.SetPropertyValue(elementId, v);
     }
   }
 }

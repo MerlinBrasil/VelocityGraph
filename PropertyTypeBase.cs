@@ -3,29 +3,45 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using VelocityDb;
+using Element = System.Int64;
+using ElementId = System.Int32;
+using PropertyTypeId = System.Int32;
+using PropertyId = System.Int32;
+using TypeId = System.Int32;
 
 namespace VelocityGraph
 {
   abstract public class PropertyTypeBase : OptimizedPersistable
   {
     string propertyName;
-    int propertyTypeId;
+    TypeId typeId;
+    PropertyId propertyId;
 
-    protected PropertyTypeBase(int typeId, string name)
+    protected PropertyTypeBase(TypeId typeId, PropertyId propertyId, string name)
     {
-      propertyTypeId = typeId;
+      this.typeId = typeId;
+      this.propertyId = propertyId;
       propertyName = name;
     }
 
-    public int PropertyTypeId
+    public PropertyId PropertyId
     {
       get
       {
-        return propertyTypeId;
+        return propertyId;
+      }
+    }    
+    
+    public TypeId TypeId
+    {
+      get
+      {
+        return typeId;
       }
     }
 
-    abstract public object GetProperty(uint oid);
-    abstract public void SetProperty(uint oid, object aValue);
+    abstract public ElementId GetPropertyElementId(object value);
+    abstract public object GetPropertyValue(ElementId elementId);
+    abstract public void SetPropertyValue(ElementId elementId, object value);
   }
 }
