@@ -8,21 +8,22 @@ using ElementId = System.Int32;
 using PropertyTypeId = System.Int32;
 using PropertyId = System.Int32;
 using TypeId = System.Int32;
+using VelocityDb.Collection.BTree;
 
 namespace VelocityGraph
 {
-  class EdgeType : OptimizedPersistable
+  class EdgeType : OptimizedPersistable, IComparable<EdgeType>, IEqualityComparer<EdgeType>
   {
     string typeName;
     TypeId typeId;
-    Dictionary<string, PropertyTypeBase> stringToPropertyType;
+    BTreeMap<string, PropertyTypeBase> stringToPropertyType;
     bool directed;
     bool neighbors;
     UInt32 edgeCt;
     NodeType tailType;
     NodeType headType;
 
-    public EdgeType(TypeId aTypeId, string aTypeName, bool directed, bool neighbors, bool restricted = false)
+    public EdgeType(TypeId aTypeId, string aTypeName, bool directed, bool neighbors, SessionBase session, bool restricted = false)
     {
       this.directed = directed;
       //   if (directed == false)
@@ -31,13 +32,13 @@ namespace VelocityGraph
       this.neighbors = neighbors;
       typeId = aTypeId;
       typeName = aTypeName;
-      stringToPropertyType = new Dictionary<string, PropertyTypeBase>();
+      stringToPropertyType = new BTreeMap<string, PropertyTypeBase>(null, session);
       edgeCt = 0;
       tailType = null;
       headType = null;
     }
 
-    public EdgeType(TypeId aTypeId, string aTypeName, NodeType tail, NodeType head, bool directed, bool neighbors)
+    public EdgeType(TypeId aTypeId, string aTypeName, NodeType tail, NodeType head, bool directed, bool neighbors, SessionBase session)
     {
       this.directed = directed;
       //   if (directed == false)
@@ -46,11 +47,37 @@ namespace VelocityGraph
       this.neighbors = neighbors;
       typeId = aTypeId;
       typeName = aTypeName;
-      stringToPropertyType = new Dictionary<string, PropertyTypeBase>();
+      stringToPropertyType = new BTreeMap<string, PropertyTypeBase>(null, session);
       edgeCt = 0;
       tailType = tail;
       headType = head;
     }
+
+    /// <summary>
+    /// Compares two EdgeType objects by id
+    /// </summary>
+    /// <param name="obj">The object to compare with</param>
+    /// <returns>a negative number if less, 0 if equal or else a positive number</returns>
+    public int CompareTo(EdgeType obj)
+    {
+      return typeId.CompareTo(obj.typeId);
+    }
+
+    public static int Compare(EdgeType aId, EdgeType bId)
+    {
+      return aId.typeId.CompareTo(bId.typeId);
+    }
+
+    public bool Equals(EdgeType x, EdgeType y)
+    {
+      return Compare(x, y) == 0;
+    }
+
+    public int GetHashCode(EdgeType aIssue)
+    {
+      return typeId.GetHashCode();
+    }
+
     /// <summary>
     /// Creates a new Property. 
     /// </summary>

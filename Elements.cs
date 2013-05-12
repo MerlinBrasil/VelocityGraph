@@ -2,24 +2,24 @@ using System;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using Element = System.Int64;
 
 namespace VelocityGraph
 {
-	public class Elements : IEnumerable, IEnumerable<long>
+  public class Elements : IEnumerable, IEnumerable<Element>
 	{
-    HashSet<long> theElements;
+    HashSet<Element> theElements;
 
     public Elements()
     {
-      theElements = new HashSet<long>();
+      theElements = new HashSet<Element>();
     }
 
-		public static long InvalidOID
+    public static Element InvalidElement
 		{
 			get
 			{
-        long result = 0;
-				return result;
+				return -1;
 			}
 		}
 
@@ -33,7 +33,7 @@ namespace VelocityGraph
       return theElements.GetHashCode();
 		}
 
-    IEnumerator<long> IEnumerable<long>.GetEnumerator()
+    IEnumerator<Element> IEnumerable<Element>.GetEnumerator()
     {
       return theElements.GetEnumerator();
     }
@@ -49,7 +49,7 @@ namespace VelocityGraph
     public Elements Copy()
 		{
       Elements result = new Elements();
-      foreach (long l in theElements)
+      foreach (Element l in theElements)
         result.theElements.Add(l);
 			return result;
 		}
@@ -71,7 +71,7 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="e">Element to be added.</param>
     /// <returns>true if the element is added, false if the element was already into the collection.</returns>
-		public bool Add(long e)
+    public bool Add(Element e)
 		{
       return theElements.Add(e);
 		}
@@ -81,7 +81,7 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="e">Node or Edge checking for</param>
     /// <returns>true if node/edge found, otherwise false.</returns>
-		public bool Exists(long e)
+    public bool Exists(Element e)
 		{
       return theElements.Contains(e);
 		}
@@ -102,7 +102,7 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="e"></param>
     /// <returns>true if element found and removed from the collection, otherwise false.</returns>
-		public bool Remove(long e)
+    public bool Remove(Element e)
 		{
       return theElements.Remove(e);
 		}

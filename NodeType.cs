@@ -17,18 +17,18 @@ namespace VelocityGraph
   {
     string typeName;
     TypeId typeId;
-    Dictionary<string, PropertyTypeBase> stringToPropertyType;
-    Dictionary<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>> tailToHeadEdges;
-    Dictionary<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>> headToTailEdges;
+    BTreeMap<string, PropertyTypeBase> stringToPropertyType;
+    BTreeMap<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>> tailToHeadEdges;
+    BTreeMap<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>> headToTailEdges;
     UInt32 nodeCt;
 
     public NodeType(TypeId aTypeId, string aTypeName, SessionBase session)
     {
       typeId = (TypeId)aTypeId;
       typeName = aTypeName;
-      stringToPropertyType = new Dictionary<string, PropertyTypeBase>();
-      tailToHeadEdges = new Dictionary<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>>();
-      headToTailEdges = new Dictionary<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>>();
+      stringToPropertyType = new BTreeMap<string, PropertyTypeBase>(null, session);
+      tailToHeadEdges = new BTreeMap<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>>(null, session);
+      headToTailEdges = new BTreeMap<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>>(null, session);
       nodeCt = 0;
     }
 
@@ -235,7 +235,7 @@ namespace VelocityGraph
     {
       get
       {
-        return (TypeId)typeId;
+        return typeId;
       }
     }
 

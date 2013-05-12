@@ -67,11 +67,11 @@ namespace VelocityGraph
 
   public class Graph : OptimizedPersistable
   {
-    Dictionary<string, NodeType> stringToNodeType;
+    BTreeMap<string, NodeType> stringToNodeType;
     NodeType[] nodeType;
-    Dictionary<string, EdgeType> stringToEdgeType;
+    BTreeMap<string, EdgeType> stringToEdgeType;
     EdgeType[] edgeType;
-    Dictionary<string, EdgeType> stringToRestrictedEdgeType;
+    BTreeMap<string, EdgeType> stringToRestrictedEdgeType;
     EdgeType[] restrictedEdgeType;
     int nodeOrEdgeTypeCt;
     PropertyTypeBase[] propertyType;
@@ -81,11 +81,11 @@ namespace VelocityGraph
     public Graph(SessionBase session)
     {
       nodeOrEdgeTypeCt = 0;
-      stringToNodeType = new Dictionary<string, NodeType>();
+      stringToNodeType = new BTreeMap<string, NodeType>(null, session);
       nodeType = new NodeType[0];
-      stringToEdgeType = new Dictionary<string, EdgeType>();
+      stringToEdgeType = new BTreeMap<string, EdgeType>(null, session);
       edgeType = new EdgeType[0];
-      stringToRestrictedEdgeType = new Dictionary<string, EdgeType>();
+      stringToRestrictedEdgeType = new BTreeMap<string, EdgeType>(null, session);
       restrictedEdgeType = new EdgeType[0];
       propertyType = new PropertyTypeBase[0];
       this.session = session;
@@ -136,7 +136,7 @@ namespace VelocityGraph
         int pos = nodeOrEdgeTypeCt;
         Update();
         Array.Resize(ref edgeType, ++nodeOrEdgeTypeCt);
-        aType = new EdgeType(pos, name, directed, neighbors);
+        aType = new EdgeType(pos, name, directed, neighbors, Session);
         edgeType[pos] = aType;
         stringToEdgeType.Add(name, aType);
       }
@@ -161,7 +161,7 @@ namespace VelocityGraph
         Array.Resize(ref restrictedEdgeType, ++nodeOrEdgeTypeCt);
         NodeType tailType = nodeType[tail];
         NodeType headType = nodeType[head];
-        aType = new EdgeType(pos, name, tailType, headType, neighbors, true);
+        aType = new EdgeType(pos, name, tailType, headType, neighbors, true, Session);
         restrictedEdgeType[pos] = aType;
         stringToRestrictedEdgeType.Add(name, aType);
       }
