@@ -3,7 +3,6 @@ using System.Linq;
 using System.Collections.Generic;
 using VelocityDb;
 using VelocityDb.Session;
-using Element = System.Int64;
 using ElementId = System.Int32;
 using PropertyTypeId = System.Int32;
 using PropertyId = System.Int32;
@@ -19,9 +18,9 @@ namespace VelocityGraph
     BTreeMap<string, PropertyTypeBase> stringToPropertyType;
     bool directed;
     bool neighbors;
-    UInt32 edgeCt;
-    NodeType tailType;
-    NodeType headType;
+    ElementId edgeCt;
+    VertexType tailType;
+    VertexType headType;
 
     public EdgeType(TypeId aTypeId, string aTypeName, bool directed, bool neighbors, SessionBase session, bool restricted = false)
     {
@@ -38,7 +37,7 @@ namespace VelocityGraph
       headType = null;
     }
 
-    public EdgeType(TypeId aTypeId, string aTypeName, NodeType tail, NodeType head, bool directed, bool neighbors, SessionBase session)
+    public EdgeType(TypeId aTypeId, string aTypeName, VertexType tail, VertexType head, bool directed, bool neighbors, SessionBase session)
     {
       this.directed = directed;
       //   if (directed == false)
@@ -125,19 +124,17 @@ namespace VelocityGraph
       return aType.PropertyId;
     }
 
-    public Element NewEdge(Element tail, NodeType tailType, Element head, NodeType headType, SessionBase session)
+    public Edge NewEdge(Vertex tail, VertexType tailType, Vertex head, VertexType headType, SessionBase session)
     {
       Update();
-      Element edgeId = (Element)typeId;
-      edgeId <<= 32;
-      edgeId += edgeCt++;
-      tailType.NewTailToHeadEdge(this, (ElementId)tail, (ElementId)head, headType, session);
+      Edge edge = new Edge(typeId, edgeCt++);
+      tailType.NewTailToHeadEdge(this, edge, tail.VertexId, head.VertexId, headType, session);
       if (directed == false)
-        headType.NewHeadToTailEdge(this, (ElementId)tail, (ElementId)head, tailType, session);
-      return edgeId;
+        headType.NewHeadToTailEdge(this, edge, tail.VertexId, head.VertexId, tailType, session);
+      return edge;
     }
 
-    public long NewEdge(PropertyTypeBase[] propertyType, PropertyId tailAttr, object tailV, PropertyId headAttr, object headV, SessionBase session)
+    public Edge NewEdgeX(PropertyTypeBase[] propertyType, PropertyId tailAttr, object tailV, PropertyId headAttr, object headV, SessionBase session)
     {
       PropertyTypeBase tailPropertyType = propertyType[tailAttr];
       PropertyTypeBase headPropertyType = propertyType[headAttr];

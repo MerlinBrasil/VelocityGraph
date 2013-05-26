@@ -5,121 +5,126 @@ using System.Text;
 using VelocityDb;
 using VelocityDb.Collection.BTree;
 using VelocityDb.Session;
-using Element = System.Int64;
-using ElementId = System.Int32;
+using VertexId = System.Int32;
+using EdgeId = System.Int32;
 using PropertyTypeId = System.Int32;
 using PropertyId = System.Int32;
 using TypeId = System.Int32;
+using EdgeIdVertexId = System.UInt64;
 
 namespace VelocityGraph
 {
-  class NodeType : OptimizedPersistable
+  using Vertexes = System.Collections.Generic.HashSet<Vertex>;
+  using Edges = System.Collections.Generic.HashSet<Edge>;
+
+  class VertexType : OptimizedPersistable
   {
     string typeName;
     TypeId typeId;
     BTreeMap<string, PropertyTypeBase> stringToPropertyType;
-    BTreeMap<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>> tailToHeadEdges;
-    BTreeMap<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>> headToTailEdges;
-    UInt32 nodeCt;
+    BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>> tailToHeadEdges;
+    BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>> headToTailEdges;
+    VertexId nodeCt;
 
-    public NodeType(TypeId aTypeId, string aTypeName, SessionBase session)
+    public VertexType(TypeId aTypeId, string aTypeName, SessionBase session)
     {
       typeId = (TypeId)aTypeId;
       typeName = aTypeName;
       stringToPropertyType = new BTreeMap<string, PropertyTypeBase>(null, session);
-      tailToHeadEdges = new BTreeMap<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>>(null, session);
-      headToTailEdges = new BTreeMap<EdgeType, BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>>(null, session);
+      tailToHeadEdges = new BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>(null, session);
+      headToTailEdges = new BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>(null, session);
       nodeCt = 0;
     }
 
-    public void NewTailToHeadEdge(EdgeType edgeType, ElementId tail, ElementId head, NodeType headType, SessionBase session)
+    protected EdgeIdVertexId edgeVertexId(Edge edge, VertexId vertexId)
     {
-      BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> map;
-      BTreeMap<ElementId, BTreeSet<ElementId>> innerMap;
-      BTreeSet<ElementId> set;
+      EdgeIdVertexId id = (EdgeIdVertexId)edge.EdgeId;
+      id <<= 32;
+      return id + (EdgeIdVertexId) vertexId;
+    }
+
+    public void NewTailToHeadEdge(EdgeType edgeType, Edge edge, VertexId tail, VertexId head, VertexType headType, SessionBase session)
+    {
+      BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
+      BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>> innerMap;
+      BTreeSet<EdgeIdVertexId> set;
       if (!tailToHeadEdges.TryGetValue(edgeType, out map))
       {
-        map = new BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>(null, session);
-        innerMap = new BTreeMap<ElementId, BTreeSet<ElementId>>(null, session);
-        set = new BTreeSet<ElementId>(null, session);
+        map = new BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>(null, session);
+        innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
+        set = new BTreeSet<EdgeIdVertexId>(null, session);
         innerMap.Add(tail, set);
         map.Add(headType, innerMap);
         tailToHeadEdges.Add(edgeType, map);
       }
       else if (!map.TryGetValue(headType, out innerMap))
       {
-        innerMap = new BTreeMap<ElementId, BTreeSet<ElementId>>(null, session);
-        set = new BTreeSet<ElementId>(null, session);
+        innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
+        set = new BTreeSet<EdgeIdVertexId>(null, session);
         innerMap.Add(tail, set);
         map.Add(headType, innerMap);
       }
       else if (!innerMap.TryGetValue(tail, out set))
       {
-        set = new BTreeSet<ElementId>(null, session);
+        set = new BTreeSet<EdgeIdVertexId>(null, session);
         innerMap.Add(tail, set);
       }
-      set.Add(head);
+      set.Add(edgeVertexId(edge, head));
     }
 
-    public void NewHeadToTailEdge(EdgeType edgeType, ElementId tail, ElementId head, NodeType tailType, SessionBase session)
+    public void NewHeadToTailEdge(EdgeType edgeType, Edge edge, VertexId tail, VertexId head, VertexType tailType, SessionBase session)
     {
-      BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> map;
-      BTreeMap<ElementId, BTreeSet<ElementId>> innerMap;
-      BTreeSet<ElementId> set;
+      BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
+      BTreeMap<EdgeId, BTreeSet<EdgeIdVertexId>> innerMap;
+      BTreeSet<EdgeIdVertexId> set;
       if (!headToTailEdges.TryGetValue(edgeType, out map))
       {
-        map = new BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>>(null, session);
-        innerMap = new BTreeMap<ElementId, BTreeSet<ElementId>>(null, session);
-        set = new BTreeSet<ElementId>(null, session);
+        map = new BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>(null, session);
+        innerMap = new BTreeMap<EdgeId, BTreeSet<EdgeIdVertexId>>(null, session);
+        set = new BTreeSet<EdgeIdVertexId>(null, session);
         innerMap.Add(tail, set);
         map.Add(tailType, innerMap);
         headToTailEdges.Add(edgeType, map);
       }
       else if (!map.TryGetValue(tailType, out innerMap))
       {
-        innerMap = new BTreeMap<ElementId, BTreeSet<ElementId>>(null, session);
-        set = new BTreeSet<ElementId>(null, session);
+        innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
+        set = new BTreeSet<EdgeIdVertexId>(null, session);
         innerMap.Add(tail, set);
         map.Add(tailType, innerMap);
       }
       else if (!innerMap.TryGetValue(tail, out set))
       {
-        set = new BTreeSet<ElementId>(null, session);
+        set = new BTreeSet<EdgeIdVertexId>(null, session);
         innerMap.Add(tail, set);
       }
-      set.Add(head);
+      set.Add(edgeVertexId(edge, head));
     }
 
-    public UInt64 NewNode()
+    public Vertex NewVertex()
     {
       Update();
-      UInt64 nodeId = (UInt64) typeId;
-      nodeId <<= 32;
-      nodeId += nodeCt++;
-      return nodeId;
+      return new Vertex(typeId, nodeCt++);
     }
 
-    public Elements Neighbors(ElementId oid, EdgeType etype, EdgesDirection dir)
+    public Vertexes Neighbors(VertexId oid, EdgeType etype, EdgesDirection dir)
     {
-      Elements result = new Elements();
-      BTreeMap<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> map;
-      BTreeSet<ElementId> set;
+      Vertexes result = new Vertexes();
+      BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
+      BTreeSet<EdgeIdVertexId> set;
       switch (dir)
       {
         case EdgesDirection.Outgoing:
           if (tailToHeadEdges.TryGetValue(etype, out map))
           {
-            foreach (KeyValuePair<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> pair in map)
+            foreach (KeyValuePair<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> pair in map)
             {
-              BTreeMap<ElementId, BTreeSet<ElementId>> innerMap = pair.Value;
+              BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>> innerMap = pair.Value;
               if (innerMap.TryGetValue(oid, out set))
               {
-                foreach (uint u in set)
+                foreach (EdgeIdVertexId id in set)
                 {
-                  Element otherId = (Element)pair.Key.TypeId;
-                  otherId <<= 32;
-                  otherId += u;
-                  result.Add((Element)otherId);
+                  result.Add(new Vertex(pair.Key.TypeId, (VertexId) id));
                 }
               }
             }
@@ -128,17 +133,14 @@ namespace VelocityGraph
         case EdgesDirection.Ingoing:
           if (headToTailEdges.TryGetValue(etype, out map))
           {
-            foreach (KeyValuePair<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> pair in map)
+            foreach (KeyValuePair<VertexType, BTreeMap<EdgeId, BTreeSet<EdgeIdVertexId>>> pair in map)
             {
-              BTreeMap<ElementId, BTreeSet<ElementId>> innerMap = pair.Value;
+              BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>> innerMap = pair.Value;
               if (innerMap.TryGetValue(oid, out set))
               {
-                foreach (ElementId u in set)
+                foreach (EdgeIdVertexId id in set)
                 {
-                  Element otherId = (Element)pair.Key.TypeId;
-                  otherId <<= 32;
-                  otherId += u;
-                  result.Add(otherId);
+                  result.Add(new Vertex(pair.Key.TypeId, (VertexId)id));
                 }
               }
             }
@@ -147,34 +149,28 @@ namespace VelocityGraph
         case EdgesDirection.Any:
           if (tailToHeadEdges.TryGetValue(etype, out map))
           {
-            foreach (KeyValuePair<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> pair in map)
+            foreach (KeyValuePair<VertexType, BTreeMap<EdgeId, BTreeSet<EdgeIdVertexId>>> pair in map)
             {
-              BTreeMap<ElementId, BTreeSet<ElementId>> innerMap = pair.Value;
+              BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>> innerMap = pair.Value;
               if (innerMap.TryGetValue(oid, out set))
               {
-                foreach (uint u in set)
+                foreach (EdgeIdVertexId id in set)
                 {
-                  UInt64 otherId = (UInt64)pair.Key.TypeId;
-                  otherId <<= 32;
-                  otherId += u;
-                  result.Add((long)otherId);
+                  result.Add(new Vertex(pair.Key.TypeId, (VertexId)id));
                 }
               }
             }
           }
           if (headToTailEdges.TryGetValue(etype, out map))
           {
-            foreach (KeyValuePair<NodeType, BTreeMap<ElementId, BTreeSet<ElementId>>> pair in map)
+            foreach (KeyValuePair<VertexType, BTreeMap<EdgeId, BTreeSet<EdgeIdVertexId>>> pair in map)
             {
-              BTreeMap<ElementId, BTreeSet<ElementId>> innerMap = pair.Value;
+              BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>> innerMap = pair.Value;
               if (innerMap.TryGetValue(oid, out set))
               {
-                foreach (ElementId u in set)
+                foreach (EdgeIdVertexId id in set)
                 {
-                  Element otherId = (Element)pair.Key.TypeId;
-                  otherId <<= 32;
-                  otherId += u;
-                  result.Add(otherId);
+                  result.Add(new Vertex(pair.Key.TypeId, (VertexId)id));
                 }
               }
             }
@@ -249,16 +245,16 @@ namespace VelocityGraph
       return -1;
     }
 
-    public object GetPropertyValue(PropertyTypeBase[] propertyType, ElementId elementId, PropertyId propertyId)
+    public object GetPropertyValue(PropertyTypeBase[] propertyType, VertexId vertexId, PropertyId propertyId)
     {
       PropertyTypeBase anPropertyType = propertyType[propertyId];
-      return anPropertyType.GetPropertyValue(elementId);
+      return anPropertyType.GetPropertyValue(vertexId);
     }
 
-    public void SetPropertyValue(PropertyTypeBase[] propertyType, ElementId elementId, PropertyId propertyId, object v)
+    public void SetPropertyValue(PropertyTypeBase[] propertyType, VertexId vertexId, PropertyId propertyId, object v)
     {
       PropertyTypeBase anPropertyType = propertyType[propertyId];
-      anPropertyType.SetPropertyValue(elementId, v);
+      anPropertyType.SetPropertyValue(vertexId, v);
     }
   }
 }

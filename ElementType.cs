@@ -26,10 +26,10 @@ namespace VelocityGraph
       throw new NotImplementedException();
 		}
 
-		public ObjectType GetObjectType()
+	/*	public ObjectType GetObjectType()
 		{
       throw new NotImplementedException();
-		}
+		}*/
 
 		public string GetName()
 		{
