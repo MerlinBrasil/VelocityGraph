@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using VelocityDb.Collection.BTree;
 using VelocityDb.Session;
-using Element = System.Int64;
 using ElementId = System.Int32;
 using PropertyTypeId = System.Int32;
 using PropertyId = System.Int32;
