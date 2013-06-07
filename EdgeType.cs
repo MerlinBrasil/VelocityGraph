@@ -124,10 +124,10 @@ namespace VelocityGraph
       return aType.PropertyId;
     }
 
-    public Edge NewEdge(Vertex tail, VertexType tailType, Vertex head, VertexType headType, SessionBase session)
+    public Edge NewEdge(Graph g, Vertex tail, VertexType tailType, Vertex head, VertexType headType, SessionBase session)
     {
       Update();
-      Edge edge = new Edge(typeId, edgeCt++);
+      Edge edge = new Edge(g, typeId, edgeCt++);
       tailType.NewTailToHeadEdge(this, edge, tail.VertexId, head.VertexId, headType, session);
       if (directed == false)
         headType.NewHeadToTailEdge(this, edge, tail.VertexId, head.VertexId, tailType, session);

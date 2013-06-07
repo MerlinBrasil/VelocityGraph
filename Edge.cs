@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using TypeId = System.Int32;
 using EdgeId = System.Int32;
+using PropertyId = System.Int32;
 
 namespace VelocityGraph
 {
@@ -17,11 +18,13 @@ namespace VelocityGraph
   {
     TypeId edgeType;
     EdgeId edgetId;
+    Graph graph;
 
-    public Edge(TypeId eType, EdgeId eId)
+    public Edge(Graph g, TypeId eType, EdgeId eId)
     {
       edgeType = eType;
       edgetId = eId;
+      graph = g;
     }
 
     public EdgeId EdgeId
@@ -38,6 +41,25 @@ namespace VelocityGraph
       {
         return edgeType;
       }
+    }
+
+    /// <summary>
+    /// Gets the other end for the given edge.
+    /// </summary>
+    /// <param name="vertex">A vertex, it must be one of the ends of the edge.</param>
+    /// <returns>The other end of the edge.</returns>
+    public Vertex GetEdgePeer(Vertex vertex)
+    {
+      throw new NotImplementedException();
+    }
+
+    public void SetProperty(PropertyId property, object v)
+    {
+      EdgeType anEdgeType = graph.edgeType[EdgeType];
+      if (anEdgeType != null)
+        anEdgeType.SetPropertyValue(graph.propertyType, EdgeId, property, v);
+      else
+        throw new InvalidTypeIdException();
     }
   }
 }

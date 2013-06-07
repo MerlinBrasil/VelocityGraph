@@ -72,13 +72,13 @@ namespace VelocityGraph
   public class Graph : OptimizedPersistable
   {
     BTreeMap<string, VertexType> stringToVertexType;
-    VertexType[] vertexType;
+    internal VertexType[] vertexType;
     BTreeMap<string, EdgeType> stringToEdgeType;
-    EdgeType[] edgeType;
+    internal EdgeType[] edgeType;
     BTreeMap<string, EdgeType> stringToRestrictedEdgeType;
-    EdgeType[] restrictedEdgeType;
+    internal EdgeType[] restrictedEdgeType;
     int nodeOrEdgeTypeCt;
-    PropertyTypeBase[] propertyType;
+    internal PropertyTypeBase[] propertyType;
     [NonSerialized]
     SessionBase session;
 
@@ -230,27 +230,6 @@ namespace VelocityGraph
       throw new NotImplementedException();
     }
 
-    public void SetProperty(Vertex element, PropertyId property, object v)
-    {
-      VertexTypeId typeId = element.VertexType;
-      VertexType aType = null;
-      if (vertexType.Length > typeId)
-        aType = vertexType[typeId];
-      if (aType != null)
-        aType.SetPropertyValue(propertyType, element.VertexId, property, v);
-      else
-        throw new InvalidTypeIdException();
-    }
-
-    public void SetProperty(Edge edge, PropertyId property, object v)
-    {
-      EdgeType anEdgeType = edgeType[edge.EdgeType];
-      if  (anEdgeType != null)
-        anEdgeType.SetPropertyValue(propertyType, edge.EdgeId, property, v);
-      else
-        throw new InvalidTypeIdException();
-    }
-
     /// <summary>
     /// Creates a new node instance.
     /// </summary>
@@ -259,7 +238,7 @@ namespace VelocityGraph
     public Vertex NewVertex(VertexTypeId type)
     {
       VertexType aType = vertexType[type];
-      return aType.NewVertex();
+      return aType.NewVertex(this);
     }
 
     /// <summary>
@@ -279,9 +258,9 @@ namespace VelocityGraph
       if (edgeType.Length > type)
         anEdgeType = edgeType[type];
       if (anEdgeType != null)
-        return anEdgeType.NewEdge(tail, tailType, head, headType, Session);
+        return anEdgeType.NewEdge(this, tail, tailType, head, headType, Session);
       anEdgeType = restrictedEdgeType[type];
-      return anEdgeType.NewEdge(tail, tailType, head, headType, Session);
+      return anEdgeType.NewEdge(this, tail, tailType, head, headType, Session);
     }
 
     /// <summary>
@@ -307,26 +286,6 @@ namespace VelocityGraph
     }
 
     /// <summary>
-    /// Selects all neighbor nodes from or to the given node OID and for the given edge type.
-    /// </summary>
-    /// <param name="oid">Node OID</param>
-    /// <param name="etype">Edge type identifier.</param>
-    /// <param name="dir">Direction</param>
-    /// <returns>Objects instance</returns>
-    public Vertexes Neighbors(Vertex e, EdgeTypeId etype, EdgesDirection dir)
-    {
-      VertexTypeId typeId = e.VertexType;
-      VertexType aNodeType = vertexType[typeId];
-      EdgeType anEdgeType = null;
-      if (edgeType.Length > etype)
-        anEdgeType = edgeType[etype];
-      if (anEdgeType != null)
-        return aNodeType.Neighbors(e.VertexId, anEdgeType, dir);
-      anEdgeType = restrictedEdgeType[etype];
-      return aNodeType.Neighbors(e.VertexId, anEdgeType, dir);
-    }
-
-    /// <summary>
     /// Selects all neighbor nodes from or to each of the node OID in the given collection and for the given edge type.
     /// </summary>
     /// <param name="objs">Node OID collection.</param>
@@ -338,7 +297,7 @@ namespace VelocityGraph
       Vertexes result = new Vertexes();
       foreach (Vertex e in objs)
       {
-        Vertexes t = Neighbors(e, etype, dir);
+        Vertexes t = e.Neighbors(etype, dir);
         result.UnionWith(t);
       }
       return result;
@@ -357,41 +316,10 @@ namespace VelocityGraph
       PropertyTypeBase aPropertyType = propertyType[property];
       //long obj = aPropertyType.TypeId;
       //obj = obj << 32;
-      return new Vertex(aPropertyType.TypeId, aPropertyType.GetPropertyElementId(v));
+      return new Vertex(this, aPropertyType.TypeId, aPropertyType.GetPropertyElementId(v));
     }
 
-    /// <summary>
-    /// Gets the Value for the given Property and OID.
-    /// </summary>
-    /// <param name="oid">OID</param>
-    /// <param name="property">Property type identifier.</param>
-    /// <param name="v">Value for the given Property and for the given OID.</param>
-    public object GetProperty(Vertex e, PropertyId property)
-    {
-      VertexTypeId typeId = e.VertexType;
-      VertexType aVertexType = null;
-      if (vertexType.Length > typeId)
-        aVertexType = vertexType[typeId];
-      if (aVertexType != null)
-      {
-        return aVertexType.GetPropertyValue(propertyType, e.VertexId, property);
-      }
-      else
-      {
-        EdgeType anEdgeType = null;
-        if (edgeType.Length > typeId)
-          anEdgeType = edgeType[typeId];
-        if (anEdgeType != null)
-          return anEdgeType.GetPropertyValue(propertyType, e.VertexId, property);
-        else
-        {
-          anEdgeType = restrictedEdgeType[typeId];
-          return anEdgeType.GetPropertyValue(propertyType, e.VertexId, property);
-        }
-      }
-    }
-
-    public long CountNodes()
+    public long CountVertexes()
     {
       return vertexType.Length;
     }
@@ -399,21 +327,6 @@ namespace VelocityGraph
     public long CountEdges()
     {
       return edgeType.Length + restrictedEdgeType.Length;
-    }
-
-    public EdgeData GetEdgeData(Vertex edge)
-    {
-      throw new NotImplementedException();
-    }
-
-    public long GetEdgePeer(Vertex edge, long node)
-    {
-      throw new NotImplementedException();
-    }
-
-    public void Drop(Vertex oid)
-    {
-      throw new NotImplementedException();
     }
 
     public void Drop(Vertexes objs)
@@ -537,17 +450,14 @@ namespace VelocityGraph
       throw new NotImplementedException();
     }
 
-    public Vertexes Explode(Vertex oid, EdgeTypeId etype, EdgesDirection dir)
-    {
-      throw new NotImplementedException();
-    }
-
-    public Vertexes Explode(Vertexes objs, EdgeTypeId etype, EdgesDirection dir)
-    {
-      throw new NotImplementedException();
-    }
-
-    public long Degree(Vertex oid, EdgeTypeId etype, EdgesDirection dir)
+    /// <summary>
+    /// Selects all edges from or to each of the vertex ids in the given collection and for the given edge type. 
+    /// </summary>
+    /// <param name="vertexes">a set of vertexes</param>
+    /// <param name="etype">the id of an EdgeType</param>
+    /// <param name="dir">direction, one of: Ingoing, Outgoing, Any</param>
+    /// <returns>a set of Vertex</returns>
+    public Vertexes GetVertexes(Vertexes vertexes, EdgeTypeId etype, EdgesDirection dir)
     {
       throw new NotImplementedException();
     }
@@ -593,11 +503,6 @@ namespace VelocityGraph
     }
 
     public Property[] FindVertexProperties(VertexTypeId type)
-    {
-      throw new NotImplementedException();
-    }
-
-    public Property[] GetProperties(Vertex oid)
     {
       throw new NotImplementedException();
     }

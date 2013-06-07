@@ -101,13 +101,13 @@ namespace VelocityGraph
       set.Add(edgeVertexId(edge, head));
     }
 
-    public Vertex NewVertex()
+    public Vertex NewVertex(Graph g)
     {
       Update();
-      return new Vertex(typeId, nodeCt++);
+      return new Vertex(g, typeId, nodeCt++);
     }
 
-    public Vertexes Neighbors(VertexId oid, EdgeType etype, EdgesDirection dir)
+    public Vertexes Neighbors(Graph g, VertexId oid, EdgeType etype, EdgesDirection dir)
     {
       Vertexes result = new Vertexes();
       BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
@@ -124,7 +124,7 @@ namespace VelocityGraph
               {
                 foreach (EdgeIdVertexId id in set)
                 {
-                  result.Add(new Vertex(pair.Key.TypeId, (VertexId) id));
+                  result.Add(new Vertex(g, pair.Key.TypeId, (VertexId) id));
                 }
               }
             }
@@ -140,7 +140,7 @@ namespace VelocityGraph
               {
                 foreach (EdgeIdVertexId id in set)
                 {
-                  result.Add(new Vertex(pair.Key.TypeId, (VertexId)id));
+                  result.Add(new Vertex(g, pair.Key.TypeId, (VertexId)id));
                 }
               }
             }
@@ -156,7 +156,7 @@ namespace VelocityGraph
               {
                 foreach (EdgeIdVertexId id in set)
                 {
-                  result.Add(new Vertex(pair.Key.TypeId, (VertexId)id));
+                  result.Add(new Vertex(g, pair.Key.TypeId, (VertexId)id));
                 }
               }
             }
@@ -170,7 +170,7 @@ namespace VelocityGraph
               {
                 foreach (EdgeIdVertexId id in set)
                 {
-                  result.Add(new Vertex(pair.Key.TypeId, (VertexId)id));
+                  result.Add(new Vertex(g, pair.Key.TypeId, (VertexId)id));
                 }
               }
             }
