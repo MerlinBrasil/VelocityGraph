@@ -8,7 +8,8 @@ using ElementId = System.Int32;
 using PropertyTypeId = System.Int32;
 using PropertyId = System.Int32;
 using TypeId = System.Int32;
-
+using VertexId = System.Int32;
+using EdgeId = System.Int32;
 
 namespace VelocityGraph
 {
@@ -18,8 +19,8 @@ namespace VelocityGraph
     BTreeMap<T, ElementId[]> valueIndex;
     BTreeMap<T, ElementId> valueIndexUnique;
 
-    public PropertyType(TypeId typeId, PropertyId propertyId, string name, PropertyKind kind, SessionBase session)
-      : base(typeId, propertyId, name)
+    internal PropertyType(bool isVertexProp, TypeId typeId, PropertyId propertyId, string name, PropertyKind kind, SessionBase session)
+      : base(isVertexProp, typeId, propertyId, name)
     {
       propertyValue = new Dictionary<ElementId, T>();
       switch (kind)
@@ -63,20 +64,48 @@ namespace VelocityGraph
         valueIndexUnique.Add(aValue, element);
     }
 
-    public ElementId GetPropertyElementId(T value)
+    public Vertex? GetPropertyVertex(T value, Graph g)
     {
-      ElementId elementId;
-      if (valueIndexUnique != null && valueIndexUnique.TryGetValue(value, out elementId))
-        return elementId;
-      ElementId[] elementIds;
-      if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
-        return elementIds[0];
-      return -1;
+      VertexId elementId = -1;
+      if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
+      {
+        ElementId[] elementIds;
+        if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
+          elementId = elementIds[0];
+      }
+      if (elementId == -1)
+        return null;
+      VertexType vertexType = g.vertexType[TypeId];
+      return vertexType.GetVertex(g, elementId);
     }
 
-    public override ElementId GetPropertyElementId(object value)
+    public override Vertex? GetPropertyVertex(object value, Graph g)
     {
-      return GetPropertyElementId((T) value);
+      if (IsVertexProperty == false)
+        throw new InvalidTypeIdException();
+      return GetPropertyVertex((T) value, g);
+    }
+
+    public Edge? GetPropertyEdge(T value, Graph g)
+    {
+      EdgeId elementId = -1;
+      if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
+      {
+        ElementId[] elementIds;
+        if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
+          elementId = elementIds[0];
+      }
+      if (elementId == -1)
+        return null;
+      EdgeType edgeType = g.edgeType[TypeId];
+      return edgeType.GetEdge(g, elementId);
+    }
+
+    public override Edge? GetPropertyEdge(object value, Graph g)
+    {
+      if (IsVertexProperty == false)
+        throw new InvalidTypeIdException();
+      return GetPropertyEdge((T)value, g);
     }
 
     public override object GetPropertyValue(ElementId element)

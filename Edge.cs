@@ -16,14 +16,18 @@ namespace VelocityGraph
   /// </summary>
   public struct Edge
   {
-    TypeId edgeType;
+    EdgeType edgeType;
     EdgeId edgetId;
+    Vertex tail;
+    Vertex head;
     Graph graph;
 
-    public Edge(Graph g, TypeId eType, EdgeId eId)
+    internal Edge(Graph g, EdgeType eType, EdgeId eId, Vertex h, Vertex t)
     {
       edgeType = eType;
       edgetId = eId;
+      tail = t;
+      head = h;
       graph = g;
     }
 
@@ -35,11 +39,27 @@ namespace VelocityGraph
       }
     }
 
-    public TypeId EdgeType
+    public EdgeType EdgeType
     {
       get
       {
         return edgeType;
+      }
+    }
+
+    public Vertex Tail
+    {
+      get
+      {
+        return tail;        
+      }
+    }
+
+    public Vertex Head
+    {
+      get
+      {
+        return head;
       }
     }
 
@@ -53,11 +73,10 @@ namespace VelocityGraph
       throw new NotImplementedException();
     }
 
-    public void SetProperty(PropertyId property, object v)
+    public void SetProperty(PropertyTypeBase property, object v)
     {
-      EdgeType anEdgeType = graph.edgeType[EdgeType];
-      if (anEdgeType != null)
-        anEdgeType.SetPropertyValue(graph.propertyType, EdgeId, property, v);
+      if (edgeType != null)
+        edgeType.SetPropertyValue(EdgeId, property, v);
       else
         throw new InvalidTypeIdException();
     }

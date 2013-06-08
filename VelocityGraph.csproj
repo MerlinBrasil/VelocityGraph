@@ -41,18 +41,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Edge.cs" />
-    <Compile Include="EdgeData.cs">
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="EdgeDoesNotExistException.cs" />
     <Compile Include="EdgeType.cs" />
     <Compile Include="Vertex.cs" />
     <Compile Include="ElementType.cs" />
     <Compile Include="InvalidPropertyIdException.cs" />
     <Compile Include="InvalidTypeIdException.cs" />
     <Compile Include="NamespaceDoc.cs" />
+    <Compile Include="VertexDoesNotExistException.cs" />
     <Compile Include="VertexType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Property.cs" />
     <Compile Include="PropertyType.cs" />
     <Compile Include="PropertyTypeBase.cs" />
     <Compile Include="Graph.cs" />

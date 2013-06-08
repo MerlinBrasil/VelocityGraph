@@ -15,10 +15,12 @@ namespace VelocityGraph
     string propertyName;
     TypeId typeId;
     PropertyId propertyId;
+    bool isVertexProperty;
 
-    protected PropertyTypeBase(TypeId typeId, PropertyId propertyId, string name)
+    protected PropertyTypeBase(bool isVertexProp, TypeId typeId, PropertyId propertyId, string name)
     {
       this.typeId = typeId;
+      isVertexProperty = isVertexProp;
       this.propertyId = propertyId;
       propertyName = name;
     }
@@ -39,7 +41,24 @@ namespace VelocityGraph
       }
     }
 
-    abstract public ElementId GetPropertyElementId(object value);
+    public string Name
+    {
+      get
+      {
+        return propertyName;
+      }
+    }
+
+    public bool IsVertexProperty
+    {
+      get
+      {
+        return isVertexProperty;
+      }
+    }
+
+    abstract public Vertex? GetPropertyVertex(object value, Graph g);
+    abstract public Edge? GetPropertyEdge(object value, Graph g);
     abstract public object GetPropertyValue(ElementId elementId);
     abstract public void SetPropertyValue(ElementId elementId, object value);
   }

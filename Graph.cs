@@ -14,9 +14,6 @@ using EdgeTypeId = System.Int32;
 
 namespace VelocityGraph
 {
-  using Vertexes = System.Collections.Generic.HashSet<Vertex>;
-  using Edges = System.Collections.Generic.HashSet<Edge>;
-
   public enum Condition
   {
     Equal,
@@ -50,12 +47,6 @@ namespace VelocityGraph
     Any
   }
 
-  /*public enum ObjectType
-  {
-    Node,
-    Edge
-  }*/
-
   public enum Order
   {
     Ascendent,
@@ -64,7 +55,6 @@ namespace VelocityGraph
 
   public enum PropertyKind
   {
-    Basic,
     Indexed,
     Unique
   }
@@ -105,16 +95,25 @@ namespace VelocityGraph
       }
     }
 
-    public static Vertexes CombineIntersection(Vertexes objs1, Vertexes objs2)
+    public static Dictionary<Vertex, HashSet<Edge>> CombineIntersection(Dictionary<Vertex, HashSet<Edge>> objs1, Dictionary<Vertex, HashSet<Edge>> objs2)
     {
-      Vertexes clone = new Vertexes(objs1);
-      clone.IntersectWith(objs2);
+      Dictionary<Vertex, HashSet<Edge>> clone = new Dictionary<Vertex, HashSet<Edge>>();
+      foreach (KeyValuePair<Vertex, HashSet<Edge>> p in objs1)
+      {
+        HashSet<Edge> edges;
+        if (objs2.TryGetValue(p.Key, out edges))
+        {
+          HashSet<Edge> edgesAll = new HashSet<Edge>(edges);
+          edgesAll.UnionWith(p.Value);
+          clone.Add(p.Key, edgesAll);
+        }
+      }
       return clone;
     }
 
-    public static Edges CombineIntersection(Edges objs1, Edges objs2)
+    public static HashSet<Edge> CombineIntersection(HashSet<Edge> objs1, HashSet<Edge> objs2)
     {
-      Edges clone = new Edges(objs1);
+      HashSet<Edge> clone = new HashSet<Edge>(objs1);
       clone.IntersectWith(objs2);
       return clone;
     }
@@ -124,7 +123,7 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="name">Unique name for the new vertex type.</param>
     /// <returns>Unique graph type identifier.</returns>
-    public VertexTypeId NewVertexType(string name)
+    public VertexType NewVertexType(string name)
     {
       VertexType aType;
       if (stringToVertexType.TryGetValue(name, out aType) == false)
@@ -136,7 +135,7 @@ namespace VelocityGraph
         vertexType[pos] = aType;
         stringToVertexType.Add(name, aType);
       }
-      return aType.TypeId;
+      return aType;
     }
 
     /// <summary>
@@ -144,9 +143,8 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="name">Unique name for the new edge type.</param>
     /// <param name="directed">If true, this creates a directed edge type, otherwise this creates a undirected edge type.</param>
-    /// <param name="neighbors">If true, this indexes neighbor nodes, otherwise not.</param>
-    /// <returns>Unique type identifier.</returns>
-    public EdgeTypeId NewEdgeType(string name, bool directed, bool neighbors)
+    /// <returns>Unique edge type.</returns>
+    public EdgeType NewEdgeType(string name, bool directed)
     {
       EdgeType aType;
       if (stringToEdgeType.TryGetValue(name, out aType) == false)
@@ -154,11 +152,11 @@ namespace VelocityGraph
         int pos = nodeOrEdgeTypeCt;
         Update();
         Array.Resize(ref edgeType, ++nodeOrEdgeTypeCt);
-        aType = new EdgeType(pos, name, directed, neighbors, Session);
+        aType = new EdgeType(pos, name, directed, Session);
         edgeType[pos] = aType;
         stringToEdgeType.Add(name, aType);
       }
-      return aType.TypeId;
+      return aType;
     }
 
     /// <summary>
@@ -167,9 +165,8 @@ namespace VelocityGraph
     /// <param name="name">Unique name for the new edge type.</param>
     /// <param name="tail">Tail node type identifier.</param>
     /// <param name="head">Head node type identifier.</param>
-    /// <param name="neighbors">If true, this indexes neighbor nodes, otherwise not.</param>
-    /// <returns>Unique type identifier.</returns>
-    public EdgeTypeId NewRestrictedEdgeType(string name, int tail, int head, bool neighbors)
+    /// <returns>Unique edge type.</returns>
+    public EdgeType NewRestrictedEdgeType(string name, VertexType tail, VertexType head)
     {
       EdgeType aType;
       if (stringToRestrictedEdgeType.TryGetValue(name, out aType) == false)
@@ -177,13 +174,11 @@ namespace VelocityGraph
         int pos = nodeOrEdgeTypeCt;
         Update();
         Array.Resize(ref restrictedEdgeType, ++nodeOrEdgeTypeCt);
-        VertexType tailType = vertexType[tail];
-        VertexType headType = vertexType[head];
-        aType = new EdgeType(pos, name, tailType, headType, neighbors, true, Session);
+        aType = new EdgeType(pos, name, tail, head, true, Session);
         restrictedEdgeType[pos] = aType;
         stringToRestrictedEdgeType.Add(name, aType);
       }
-      return aType.TypeId;
+      return aType;
     }
 
     /// <summary>
@@ -194,14 +189,9 @@ namespace VelocityGraph
     /// <param name="dt">Data type for the new Property.</param>
     /// <param name="kind">Property kind.</param>
     /// <returns>Unique Property identifier.</returns>
-    public PropertyId NewVertexProperty(VertexTypeId type, string name, DataType dt, PropertyKind kind)
+    public PropertyTypeBase NewVertexProperty(VertexType vertexType, string name, DataType dt, PropertyKind kind)
     {
-      VertexType aType = null;
-      if (vertexType.Length > type)
-        aType = vertexType[type];
-      if (aType != null)
-        return aType.NewProperty(ref propertyType, name, dt, kind);
-      throw new InvalidTypeIdException();
+      return vertexType.NewProperty(ref propertyType, name, dt, kind);
     }
 
     /// <summary>
@@ -212,20 +202,12 @@ namespace VelocityGraph
     /// <param name="dt">Data type for the new Property.</param>
     /// <param name="kind">Property kind.</param>
     /// <returns>Unique Property identifier.</returns>
-    public PropertyId NewEdgeProperty(EdgeTypeId type, string name, DataType dt, PropertyKind kind)
+    public PropertyTypeBase NewEdgeProperty(EdgeType edgeType, string name, DataType dt, PropertyKind kind)
     {
-      EdgeType anEdgeType = null;
-      if (edgeType.Length > type)
-        anEdgeType = edgeType[type];
-      else
-        if (restrictedEdgeType.Length > type)
-          anEdgeType = restrictedEdgeType[type];
-      if (anEdgeType != null)
-        return anEdgeType.NewProperty(ref propertyType, name, dt, kind);
-      throw new InvalidTypeIdException();
+      return edgeType.NewProperty(ref propertyType, name, dt, kind);
     }
 
-    public PropertyId NewProperty(VertexTypeId type, string name, ElementType dt, PropertyKind kind, object defaultValue)
+    public PropertyId NewProperty(VertexType type, string name, ElementType dt, PropertyKind kind, object defaultValue)
     {
       throw new NotImplementedException();
     }
@@ -235,10 +217,9 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="type">Node type identifier.</param>
     /// <returns>Unique OID of the new node instance.</returns>
-    public Vertex NewVertex(VertexTypeId type)
+    public Vertex NewVertex(VertexType vertexType)
     {
-      VertexType aType = vertexType[type];
-      return aType.NewVertex(this);
+      return vertexType.NewVertex(this);
     }
 
     /// <summary>
@@ -248,19 +229,9 @@ namespace VelocityGraph
     /// <param name="tail">Source OID.</param>
     /// <param name="head">Target OID. </param>
     /// <returns>Unique OID of the new edge instance.</returns>
-    public Edge NewEdge(EdgeTypeId type, Vertex tail, Vertex head)
+    public Edge NewEdge(EdgeType edgeType, Vertex tail, Vertex head)
     {
-      VertexTypeId tailTypeId = tail.VertexType;
-      VertexType tailType = vertexType[tailTypeId];
-      VertexTypeId headTypeId = head.VertexType;
-      VertexType headType = vertexType[headTypeId];
-      EdgeType anEdgeType = null;
-      if (edgeType.Length > type)
-        anEdgeType = edgeType[type];
-      if (anEdgeType != null)
-        return anEdgeType.NewEdge(this, tail, tailType, head, headType, Session);
-      anEdgeType = restrictedEdgeType[type];
-      return anEdgeType.NewEdge(this, tail, tailType, head, headType, Session);
+      return edgeType.NewEdge(this, tail, tail.VertexType, head, head.VertexType, Session);
     }
 
     /// <summary>
@@ -273,53 +244,49 @@ namespace VelocityGraph
     /// <param name="tailV">Tail value</param>
     /// <param name="headAttr">Property identifier.</param>
     /// <param name="headV">Head value</param>
-    /// <returns>Unique OID of the new edge instance.</returns>
-    public Edge NewEdge(EdgeTypeId type, PropertyId tailAttr, object tailV, PropertyId headAttr, object headV)
+    /// <returns>Unique edge instance.</returns>
+    public Edge NewEdge(EdgeType edgeType, PropertyTypeBase tailAttr, object tailV, PropertyTypeBase headAttr, object headV)
     {
-      EdgeType anEdgeType = null;
-      if (edgeType.Length > type)
-        anEdgeType = edgeType[type];
-      if (anEdgeType != null)
-        return anEdgeType.NewEdgeX(propertyType, tailAttr, tailV, headAttr, headV, Session);
-      anEdgeType = restrictedEdgeType[type];
-      return anEdgeType.NewEdgeX(propertyType, tailAttr, tailV, headAttr, headV, Session);
+      return edgeType.NewEdgeX(propertyType, tailAttr, tailV, headAttr, headV, Session);
     }
 
     /// <summary>
-    /// Selects all neighbor nodes from or to each of the node OID in the given collection and for the given edge type.
+    /// Selects all neighbor Vertices from or to each of the node OID in the given collection and for the given edge type.
     /// </summary>
-    /// <param name="objs">Node OID collection.</param>
+    /// <param name="Vertices">Vertex collection.</param>
     /// <param name="etype">Edge type identifier.</param>
     /// <param name="dir">Direction.</param>
-    /// <returns>All neighbor nodes collection</returns>
-    public Vertexes Neighbors(Vertexes objs, EdgeTypeId etype, EdgesDirection dir)
+    /// <returns>Dictionary of vertex keys with edges path to vertex</returns>
+    public Dictionary<Vertex, HashSet<Edge>> Traverse(Dictionary<Vertex, HashSet<Edge>> vertices, EdgeType etype, EdgesDirection dir)
     {
-      Vertexes result = new Vertexes();
-      foreach (Vertex e in objs)
+      Dictionary<Vertex, HashSet<Edge>> result = new Dictionary<Vertex, HashSet<Edge>>();
+      foreach (KeyValuePair<Vertex, HashSet<Edge>> p in vertices)
       {
-        Vertexes t = e.Neighbors(etype, dir);
-        result.UnionWith(t);
+        Dictionary<Vertex, HashSet<Edge>> t = p.Key.Traverse(etype, dir);
+        foreach (KeyValuePair<Vertex, HashSet<Edge>> p2 in t)
+        {
+          HashSet<Edge> edges;
+          if (result.TryGetValue(p2.Key, out edges))
+            edges.UnionWith(p2.Value);
+          else
+            result[p2.Key] = p2.Value;
+        }
       }
       return result;
     }
 
     /// <summary>
-    /// Finds one object having the given value for the given property. 
+    /// Finds vertex having the given value for the given property. 
     /// </summary>
     /// <param name="property"></param>
     /// <param name="v"></param>
-    /// <returns>the Oid of the object matching</returns>
-    public Vertex FindElement(PropertyId property, object v)
+    /// <returns>the vertex matching</returns>
+    public Vertex? FindVertex(PropertyTypeBase property, object v)
     {
-      if (propertyType.Length <= property)
-        throw new InvalidPropertyIdException();
-      PropertyTypeBase aPropertyType = propertyType[property];
-      //long obj = aPropertyType.TypeId;
-      //obj = obj << 32;
-      return new Vertex(this, aPropertyType.TypeId, aPropertyType.GetPropertyElementId(v));
+      return property.GetPropertyVertex(v, this); ;
     }
 
-    public long CountVertexes()
+    public long CountVertices()
     {
       return vertexType.Length;
     }
@@ -329,37 +296,17 @@ namespace VelocityGraph
       return edgeType.Length + restrictedEdgeType.Length;
     }
 
-    public void Drop(Vertexes objs)
+    public void Drop(Dictionary<Vertex, HashSet<Edge>> objs)
     {
       throw new NotImplementedException();
     }
 
-    public int NewSessionProperty(VertexTypeId type, DataType dt, PropertyKind kind)
+    public void SetPropertyDefaultValue(PropertyTypeBase property, object v)
     {
       throw new NotImplementedException();
     }
 
-    public int NewSessionProperty(EdgeTypeId type, DataType dt, PropertyKind kind, object defaultValue)
-    {
-      throw new NotImplementedException();
-    }
-
-    public void SetPropertyDefaultValue(PropertyId property, object v)
-    {
-      throw new NotImplementedException();
-    }
-
-    public void IndexProperty(PropertyId property, PropertyKind kind)
-    {
-      throw new NotImplementedException();
-    }
-
-    /*  public PropertyStatistics GetPropertyStatistics(int attr, bool basic)
-      {
-        throw new NotImplementedException();
-      }*/
-
-    public long GetPropertyIntervalCount(PropertyId attr, object lower, bool includeLower, object higher, bool includeHigher)
+    public long GetPropertyIntervalCount(PropertyTypeBase attr, object lower, bool includeLower, object higher, bool includeHigher)
     {
       throw new NotImplementedException();
     }
@@ -384,68 +331,40 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="name">The name of the edge/node type being looked up</param>
     /// <returns>A node/edge type id or -1 if not found.</returns>
-    public VertexTypeId FindVertexType(string name)
+    public VertexType FindVertexType(string name)
     {
       VertexType nType;
       if (stringToVertexType.TryGetValue(name, out nType))
-        return nType.TypeId;
-      return -1;
+        return nType;
+      return null;
     }
-
-    /*  public ElementType GetType(TypeId type)
-      {
-        throw new NotImplementedException();
-      }*/
 
     public void RemoveVertexType(VertexTypeId type)
     {
       throw new NotImplementedException();
     }
 
-    public int FindVertexProperty(VertexTypeId type, string name)
+    public PropertyTypeBase FindVertexProperty(VertexType vertexType, string name)
     {
-      VertexType aType = null;
-      if (vertexType.Length > type)
-        aType = vertexType[type];
-      if (aType != null)
-        return aType.FindProperty(name);
-      throw new InvalidTypeIdException();
+      return vertexType.FindProperty(name);
     }
 
-    public int FindEdgeProperty(EdgeTypeId type, string name)
-    {
-      EdgeType anEdgeType = null;
-      if (edgeType.Length > type)
-        anEdgeType = edgeType[type];
-      else
-        if (restrictedEdgeType.Length > type)
-          anEdgeType = restrictedEdgeType[type];
-      if (anEdgeType != null)
-        return anEdgeType.FindProperty(name);
-      throw new InvalidTypeIdException();
-    }
-
-    public Property GetProperty(PropertyId attr)
+    public void RemoveProperty(PropertyTypeBase attr)
     {
       throw new NotImplementedException();
     }
 
-    public void RemoveProperty(PropertyId attr)
+    public Dictionary<Vertex, HashSet<Edge>> Select(VertexType type)
     {
       throw new NotImplementedException();
     }
 
-    public Vertexes Select(VertexTypeId type)
+    public Dictionary<Vertex, HashSet<Edge>> Select(PropertyTypeBase attr, Condition cond, object v)
     {
       throw new NotImplementedException();
     }
 
-    public Vertexes Select(PropertyId attr, Condition cond, object v)
-    {
-      throw new NotImplementedException();
-    }
-
-    public Vertexes Select(PropertyId attr, Condition cond, object lower, object higher)
+    public Dictionary<Vertex, HashSet<Edge>> Select(PropertyTypeBase attr, Condition cond, object lower, object higher)
     {
       throw new NotImplementedException();
     }
@@ -453,61 +372,46 @@ namespace VelocityGraph
     /// <summary>
     /// Selects all edges from or to each of the vertex ids in the given collection and for the given edge type. 
     /// </summary>
-    /// <param name="vertexes">a set of vertexes</param>
+    /// <param name="Vertices">a set of Vertices</param>
     /// <param name="etype">the id of an EdgeType</param>
     /// <param name="dir">direction, one of: Ingoing, Outgoing, Any</param>
     /// <returns>a set of Vertex</returns>
-    public Vertexes GetVertexes(Vertexes vertexes, EdgeTypeId etype, EdgesDirection dir)
+    public Dictionary<Vertex, HashSet<Edge>> GetVertices(Dictionary<Vertex, HashSet<Edge>> vertices, EdgeTypeId etype, EdgesDirection dir)
     {
       throw new NotImplementedException();
     }
 
-    public Edges Edges(EdgeTypeId etype, Vertex tail, Vertex head)
+    public HashSet<Edge> Edges(EdgeTypeId etype, Vertex tail, Vertex head)
     {
       throw new NotImplementedException();
     }
 
-    public Vertex FindEdge(EdgeTypeId etype, Vertex tail, Vertex head)
+    public Dictionary<Vertex, HashSet<Edge>> Tails(Dictionary<Vertex, HashSet<Edge>> edges)
     {
       throw new NotImplementedException();
     }
 
-    public Vertexes Tails(Vertexes edges)
+    public Dictionary<Vertex, HashSet<Edge>> Heads(Dictionary<Vertex, HashSet<Edge>> edges)
     {
       throw new NotImplementedException();
     }
 
-    public Vertexes Heads(Vertexes edges)
+    public void TailsAndHeads(HashSet<Edge> edges, Dictionary<Vertex, HashSet<Edge>> tails, Dictionary<Vertex, HashSet<Edge>> heads)
     {
       throw new NotImplementedException();
     }
 
-    public void TailsAndHeads(Edges edges, Vertexes tails, Vertexes heads)
+    public VertexType[] FindVertexTypes()
     {
       throw new NotImplementedException();
     }
 
-    public ElementType[] FindNodeTypes()
+    public EdgeType[] FindEdgeTypes()
     {
       throw new NotImplementedException();
     }
 
-    public ElementType[] FindEdgeTypes()
-    {
-      throw new NotImplementedException();
-    }
-
-    public ElementType[] FindTypes()
-    {
-      throw new NotImplementedException();
-    }
-
-    public Property[] FindVertexProperties(VertexTypeId type)
-    {
-      throw new NotImplementedException();
-    }
-
-    public object[] GetValues(PropertyId property)
+    public object[] GetValues(PropertyTypeBase property)
     {
       throw new NotImplementedException();
     }
