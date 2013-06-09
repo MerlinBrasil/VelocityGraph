@@ -68,7 +68,7 @@ namespace VelocityGraph
     BTreeMap<string, EdgeType> stringToRestrictedEdgeType;
     internal EdgeType[] restrictedEdgeType;
     int nodeOrEdgeTypeCt;
-    internal PropertyTypeBase[] propertyType;
+    internal PropertyType[] propertyType;
     [NonSerialized]
     SessionBase session;
 
@@ -81,7 +81,7 @@ namespace VelocityGraph
       edgeType = new EdgeType[0];
       stringToRestrictedEdgeType = new BTreeMap<string, EdgeType>(null, session);
       restrictedEdgeType = new EdgeType[0];
-      propertyType = new PropertyTypeBase[0];
+      propertyType = new PropertyType[0];
       this.session = session;
     }
 
@@ -189,7 +189,7 @@ namespace VelocityGraph
     /// <param name="dt">Data type for the new Property.</param>
     /// <param name="kind">Property kind.</param>
     /// <returns>Unique Property identifier.</returns>
-    public PropertyTypeBase NewVertexProperty(VertexType vertexType, string name, DataType dt, PropertyKind kind)
+    public PropertyType NewVertexProperty(VertexType vertexType, string name, DataType dt, PropertyKind kind)
     {
       return vertexType.NewProperty(ref propertyType, name, dt, kind);
     }
@@ -202,7 +202,7 @@ namespace VelocityGraph
     /// <param name="dt">Data type for the new Property.</param>
     /// <param name="kind">Property kind.</param>
     /// <returns>Unique Property identifier.</returns>
-    public PropertyTypeBase NewEdgeProperty(EdgeType edgeType, string name, DataType dt, PropertyKind kind)
+    public PropertyType NewEdgeProperty(EdgeType edgeType, string name, DataType dt, PropertyKind kind)
     {
       return edgeType.NewProperty(ref propertyType, name, dt, kind);
     }
@@ -245,7 +245,7 @@ namespace VelocityGraph
     /// <param name="headAttr">Property identifier.</param>
     /// <param name="headV">Head value</param>
     /// <returns>Unique edge instance.</returns>
-    public Edge NewEdge(EdgeType edgeType, PropertyTypeBase tailAttr, object tailV, PropertyTypeBase headAttr, object headV)
+    public Edge NewEdge(EdgeType edgeType, PropertyType tailAttr, object tailV, PropertyType headAttr, object headV)
     {
       return edgeType.NewEdgeX(propertyType, tailAttr, tailV, headAttr, headV, Session);
     }
@@ -281,7 +281,7 @@ namespace VelocityGraph
     /// <param name="property"></param>
     /// <param name="v"></param>
     /// <returns>the vertex matching</returns>
-    public Vertex? FindVertex(PropertyTypeBase property, object v)
+    public Vertex? FindVertex(PropertyType property, object v)
     {
       return property.GetPropertyVertex(v, this); ;
     }
@@ -301,12 +301,12 @@ namespace VelocityGraph
       throw new NotImplementedException();
     }
 
-    public void SetPropertyDefaultValue(PropertyTypeBase property, object v)
+    public void SetPropertyDefaultValue(PropertyType property, object v)
     {
       throw new NotImplementedException();
     }
 
-    public long GetPropertyIntervalCount(PropertyTypeBase attr, object lower, bool includeLower, object higher, bool includeHigher)
+    public long GetPropertyIntervalCount(PropertyType attr, object lower, bool includeLower, object higher, bool includeHigher)
     {
       throw new NotImplementedException();
     }
@@ -344,12 +344,12 @@ namespace VelocityGraph
       throw new NotImplementedException();
     }
 
-    public PropertyTypeBase FindVertexProperty(VertexType vertexType, string name)
+    public PropertyType FindVertexProperty(VertexType vertexType, string name)
     {
       return vertexType.FindProperty(name);
     }
 
-    public void RemoveProperty(PropertyTypeBase attr)
+    public void RemoveProperty(PropertyType attr)
     {
       throw new NotImplementedException();
     }
@@ -359,12 +359,12 @@ namespace VelocityGraph
       throw new NotImplementedException();
     }
 
-    public Dictionary<Vertex, HashSet<Edge>> Select(PropertyTypeBase attr, Condition cond, object v)
+    public Dictionary<Vertex, HashSet<Edge>> Select(PropertyType attr, Condition cond, object v)
     {
       throw new NotImplementedException();
     }
 
-    public Dictionary<Vertex, HashSet<Edge>> Select(PropertyTypeBase attr, Condition cond, object lower, object higher)
+    public Dictionary<Vertex, HashSet<Edge>> Select(PropertyType attr, Condition cond, object lower, object higher)
     {
       throw new NotImplementedException();
     }
@@ -411,7 +411,7 @@ namespace VelocityGraph
       throw new NotImplementedException();
     }
 
-    public object[] GetValues(PropertyTypeBase property)
+    public object[] GetValues(PropertyType property)
     {
       throw new NotImplementedException();
     }

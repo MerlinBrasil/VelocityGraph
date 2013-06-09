@@ -73,7 +73,7 @@ namespace VelocityGraph
       throw new NotImplementedException();
     }
 
-    public void SetProperty(PropertyTypeBase property, object v)
+    public void SetProperty(PropertyType property, object v)
     {
       if (edgeType != null)
         edgeType.SetPropertyValue(EdgeId, property, v);

@@ -19,8 +19,8 @@ namespace VelocityGraph
     string typeName;
     TypeId typeId;
     BTreeSet<VertexId> vertecis;
-    internal BTreeMap<string, PropertyTypeBase> stringToPropertyType;
-    internal PropertyTypeBase[] vertexProperties;
+    internal BTreeMap<string, PropertyType> stringToPropertyType;
+    internal PropertyType[] vertexProperties;
     BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>> tailToHeadEdges;
     BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>> headToTailEdges;
     VertexId nodeCt;
@@ -30,10 +30,10 @@ namespace VelocityGraph
       typeId = (TypeId)aTypeId;
       typeName = aTypeName;
       vertecis = new BTreeSet<VertexId>(null, session);
-      stringToPropertyType = new BTreeMap<string, PropertyTypeBase>(null, session);
+      stringToPropertyType = new BTreeMap<string, PropertyType>(null, session);
       tailToHeadEdges = new BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>(null, session);
       headToTailEdges = new BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>(null, session);
-      vertexProperties = new PropertyTypeBase[0];
+      vertexProperties = new PropertyType[0];
       nodeCt = 0;
     }
 
@@ -237,9 +237,9 @@ namespace VelocityGraph
     /// <param name="dt">Data type for the new Property.</param>
     /// <param name="kind">Property kind.</param>
     /// <returns>Unique Property identifier.</returns>
-    public PropertyTypeBase NewProperty(ref PropertyTypeBase[] propertyType, string name, DataType dt, PropertyKind kind)
+    public PropertyType NewProperty(ref PropertyType[] propertyType, string name, DataType dt, PropertyKind kind)
     {
-      PropertyTypeBase aType;
+      PropertyType aType;
       if (stringToPropertyType.TryGetValue(name, out aType) == false)
       {
         int pos = propertyType.Length;
@@ -248,28 +248,28 @@ namespace VelocityGraph
         switch (dt)
         {
           case DataType.Boolean:
-            aType = new PropertyType<bool>(true, typeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<bool>(true, typeId, pos, name, kind, Session);
             break;
           case DataType.Integer:
-            aType = new PropertyType<int>(true,typeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<int>(true,typeId,pos, name, kind, Session);
             break;
           case DataType.Long:
-            aType = new PropertyType<long>(true,typeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<long>(true,typeId,pos, name, kind, Session);
             break;
           case DataType.Double:
-            aType = new PropertyType<double>(true,typeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<double>(true,typeId,pos, name, kind, Session);
             break;
           case DataType.DateTime:
-            aType = new PropertyType<DateTime>(true,typeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<DateTime>(true,typeId,pos, name, kind, Session);
             break;
           case DataType.String:
-            aType = new PropertyType<string>(true,typeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<string>(true,typeId,pos, name, kind, Session);
             break;
           case DataType.Object:
-            aType = new PropertyType<object>(true,typeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<object>(true,typeId,pos, name, kind, Session);
             break;
           case DataType.OID:
-            aType = new PropertyType<long>(true,typeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<long>(true,typeId,pos, name, kind, Session);
             break;
         }
         propertyType[pos] = aType;
@@ -287,9 +287,9 @@ namespace VelocityGraph
       }
     }
 
-    public PropertyTypeBase FindProperty(string name)
+    public PropertyType FindProperty(string name)
     {
-      PropertyTypeBase anPropertyType;
+      PropertyType anPropertyType;
       if (stringToPropertyType.TryGetValue(name, out anPropertyType))
       {
         return anPropertyType;
@@ -297,12 +297,12 @@ namespace VelocityGraph
       return null;
     }
 
-    public object GetPropertyValue(VertexId vertexId, PropertyTypeBase propertyId)
+    public object GetPropertyValue(VertexId vertexId, PropertyType propertyId)
     {
       return propertyId.GetPropertyValue(vertexId);
     }
 
-    public void SetPropertyValue(VertexId vertexId, PropertyTypeBase propertyType, object v)
+    public void SetPropertyValue(VertexId vertexId, PropertyType propertyType, object v)
     {
       propertyType.SetPropertyValue(vertexId, v);
     }

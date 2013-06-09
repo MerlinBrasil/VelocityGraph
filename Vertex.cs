@@ -49,7 +49,7 @@ namespace VelocityGraph
     }
 
 
-    public PropertyTypeBase[] GetProperties()
+    public PropertyType[] GetProperties()
     {
       if (vertexType != null)
         return vertexType.vertexProperties;
@@ -61,7 +61,7 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="property">Property type identifier.</param>
     /// <param name="v">Value for the given Property and for the given id.</param>
-    public object GetProperty(PropertyTypeBase property)
+    public object GetProperty(PropertyType property)
     {
       if (vertexType != null)
         return vertexType.GetPropertyValue(VertexId, property);
@@ -106,7 +106,7 @@ namespace VelocityGraph
       return vertexType.Traverse(graph, this, etype, dir);
     }
 
-    public void SetProperty(PropertyTypeBase property, object v)
+    public void SetProperty(PropertyType property, object v)
     {
       if (vertexType != null)
         vertexType.SetPropertyValue(VertexId, property, v);

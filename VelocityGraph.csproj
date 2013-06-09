@@ -51,8 +51,8 @@
     <Compile Include="VertexDoesNotExistException.cs" />
     <Compile Include="VertexType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PropertyTypeT.cs" />
     <Compile Include="PropertyType.cs" />
-    <Compile Include="PropertyTypeBase.cs" />
     <Compile Include="Graph.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -18,7 +18,7 @@ namespace VelocityGraph
     string typeName;
     TypeId typeId;
     BTreeMap<EdgeId, VertexId[]> edges;
-    BTreeMap<string, PropertyTypeBase> stringToPropertyType;
+    BTreeMap<string, PropertyType> stringToPropertyType;
     bool directed;
     ElementId edgeCt;
     VertexType tailType;
@@ -33,7 +33,7 @@ namespace VelocityGraph
       typeId = aTypeId;
       typeName = aTypeName;
       edges = new BTreeMap<EdgeId, VertexId[]>(null, session);
-      stringToPropertyType = new BTreeMap<string, PropertyTypeBase>(null, session);
+      stringToPropertyType = new BTreeMap<string, PropertyType>(null, session);
       edgeCt = 0;
       tailType = null;
       headType = null;
@@ -48,7 +48,7 @@ namespace VelocityGraph
       typeId = aTypeId;
       typeName = aTypeName;
       edges = new BTreeMap<EdgeId, VertexId[]>(null, session);
-      stringToPropertyType = new BTreeMap<string, PropertyTypeBase>(null, session);
+      stringToPropertyType = new BTreeMap<string, PropertyType>(null, session);
       edgeCt = 0;
       tailType = tail;
       headType = head;
@@ -112,9 +112,9 @@ namespace VelocityGraph
     /// <param name="dt">Data type for the new Property.</param>
     /// <param name="kind">Property kind.</param>
     /// <returns>a Property.</returns>
-    public PropertyTypeBase NewProperty(ref PropertyTypeBase[] propertyType, string name, DataType dt, PropertyKind kind)
+    public PropertyType NewProperty(ref PropertyType[] propertyType, string name, DataType dt, PropertyKind kind)
     {
-      PropertyTypeBase aType;
+      PropertyType aType;
       if (stringToPropertyType.TryGetValue(name, out aType) == false)
       {
         int pos = propertyType.Length;
@@ -122,28 +122,28 @@ namespace VelocityGraph
         switch (dt)
         {
           case DataType.Boolean:
-            aType = new PropertyType<bool>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<bool>(false, this.TypeId, pos, name, kind, Session);
             break;
           case DataType.Integer:
-            aType = new PropertyType<int>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<int>(false, this.TypeId,pos, name, kind, Session);
             break;
           case DataType.Long:
-            aType = new PropertyType<long>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<long>(false, this.TypeId,pos, name, kind, Session);
             break;
           case DataType.Double:
-            aType = new PropertyType<double>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<double>(false, this.TypeId,pos, name, kind, Session);
             break;
           case DataType.DateTime:
-            aType = new PropertyType<DateTime>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<DateTime>(false, this.TypeId,pos, name, kind, Session);
             break;
           case DataType.String:
-            aType = new PropertyType<string>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<string>(false, this.TypeId,pos, name, kind, Session);
             break;
           case DataType.Object:
-            aType = new PropertyType<object>(false,this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<object>(false,this.TypeId,pos, name, kind, Session);
             break;
           case DataType.OID:
-            aType = new PropertyType<long>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<long>(false, this.TypeId,pos, name, kind, Session);
             break;
         }
         propertyType[pos] = aType;
@@ -163,7 +163,7 @@ namespace VelocityGraph
       return edge;
     }
 
-    public Edge NewEdgeX(PropertyTypeBase[] propertyType, PropertyTypeBase tailAttr, object tailV, PropertyTypeBase headAttr, object headV, SessionBase session)
+    public Edge NewEdgeX(PropertyType[] propertyType, PropertyType tailAttr, object tailV, PropertyType headAttr, object headV, SessionBase session)
     {
       throw new NotImplementedException("don't yet know what it is supposed to do");
     }
@@ -176,9 +176,9 @@ namespace VelocityGraph
       }
     }
 
-    public PropertyTypeBase FindProperty(string name)
+    public PropertyType FindProperty(string name)
     {
-      PropertyTypeBase anPropertyType;
+      PropertyType anPropertyType;
       if (stringToPropertyType.TryGetValue(name, out anPropertyType))
       {
         return anPropertyType;
@@ -186,12 +186,12 @@ namespace VelocityGraph
       return null;
     }
 
-    public object GetPropertyValue(ElementId elementId, PropertyTypeBase property)
+    public object GetPropertyValue(ElementId elementId, PropertyType property)
     {
       return property.GetPropertyValue(elementId);
     }
 
-    public void SetPropertyValue(ElementId elementId, PropertyTypeBase property, object v)
+    public void SetPropertyValue(ElementId elementId, PropertyType property, object v)
     {
       property.SetPropertyValue(elementId, v);
     }
