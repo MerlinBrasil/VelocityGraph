@@ -44,7 +44,6 @@
     <Compile Include="EdgeDoesNotExistException.cs" />
     <Compile Include="EdgeType.cs" />
     <Compile Include="Vertex.cs" />
-    <Compile Include="ElementType.cs" />
     <Compile Include="InvalidPropertyIdException.cs" />
     <Compile Include="InvalidTypeIdException.cs" />
     <Compile Include="NamespaceDoc.cs" />

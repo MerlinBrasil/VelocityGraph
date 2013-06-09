@@ -207,11 +207,6 @@ namespace VelocityGraph
       return edgeType.NewProperty(ref propertyType, name, dt, kind);
     }
 
-    public PropertyId NewProperty(VertexType type, string name, ElementType dt, PropertyKind kind, object defaultValue)
-    {
-      throw new NotImplementedException();
-    }
-
     /// <summary>
     /// Creates a new node instance.
     /// </summary>
