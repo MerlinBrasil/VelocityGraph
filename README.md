@@ -1,11 +1,13 @@
-﻿VelocityGraph - The World's fastest most scalable graph database (?)
+﻿VelocityGraph
 ==========================================
 
-Features are rapidly beeing added to VelocityGraph. We listen to what you request and we will try to add most of what you need. Let us know what is currently missing.
+Our goal is to make VelocityGraph the world's fastest most scalable graph database with complete graph API support. Features are rapidly being added to VelocityGraph. We listen to what you request and we will try to add most of what you need. Let us know what is currently missing.
 
-You may also yourself add missing functionality as this is a completly open source project. Contributions will be ghreatly appreciated.
+With VelocityGraph, you application is not limited to using the API provided with VelocityGraph, your application can also seamlessly use the API underlying object database engine [VelocityDB](http://www.VelocityDB.com).
 
-We are looking for .NET supported graph database benchmarks, let us know if you know of any such benchmark?
+You may also yourself add missing functionality as this is a completely open source project. Contributions are greatly appreciated.
+
+We are looking for .NET supported graph database benchmarks; let us know if you know of any such benchmark?
 
 Read more on the [VelocityGraph website](http://www.VelocityGraph.com).
 
