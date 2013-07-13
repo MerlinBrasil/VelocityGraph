@@ -11,6 +11,8 @@ using PropertyTypeId = System.Int32;
 using PropertyId = System.Int32;
 using VertexTypeId = System.Int32;
 using EdgeTypeId = System.Int32;
+using Frontenac.Blueprints;
+using Frontenac.Blueprints.Util;
 
 namespace VelocityGraph
 {
@@ -40,13 +42,6 @@ namespace VelocityGraph
     OID
   }
 
-  public enum EdgesDirection
-  {
-    Ingoing,
-    Outgoing,
-    Any
-  }
-
   public enum Order
   {
     Ascendent,
@@ -59,7 +54,7 @@ namespace VelocityGraph
     Unique
   }
 
-  public class Graph : OptimizedPersistable
+  public class Graph : OptimizedPersistable, IGraph
   {
     BTreeMap<string, VertexType> stringToVertexType;
     internal VertexType[] vertexType;
@@ -83,6 +78,46 @@ namespace VelocityGraph
       restrictedEdgeType = new EdgeType[0];
       propertyType = new PropertyType[0];
       this.session = session;
+    }
+
+    public IEdge AddEdge(object id, IVertex outVertex, IVertex inVertex, string label)
+    {
+      throw new NotImplementedException();
+    }
+
+    public IVertex AddVertex(object id)
+    {
+      throw new NotImplementedException();
+    }
+
+    public IEdge GetEdge(object id)
+    {
+      throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Return an iterable to all the edges in the graph.
+    /// </summary>
+    /// <returns>an iterable reference to all edges in the graph</returns>
+    public IEnumerable<IEdge> GetEdges()
+    {
+      List<IEnumerable<IEdge>> enums = new List<IEnumerable<IEdge>>();
+      MultiIterable<IEdge> multi = new MultiIterable<IEdge>(enums);
+      foreach (EdgeType et in edgeType)
+      {
+        enums.Add(et.GetEdges(this));
+      }
+      return multi;
+    }
+
+    public virtual IEnumerable<IEdge> GetEdges(string key, object value)
+    {
+      throw new NotImplementedException();
+    }
+
+    public Features GetFeatures()
+    {
+      throw new NotImplementedException();
     }
 
     public override SessionBase Session
@@ -240,7 +275,7 @@ namespace VelocityGraph
     /// <param name="headAttr">Property identifier.</param>
     /// <param name="headV">Head value</param>
     /// <returns>Unique edge instance.</returns>
-    public Edge NewEdge(EdgeType edgeType, PropertyType tailAttr, object tailV, PropertyType headAttr, object headV)
+    public IEdge NewEdge(EdgeType edgeType, PropertyType tailAttr, object tailV, PropertyType headAttr, object headV)
     {
       return edgeType.NewEdgeX(propertyType, tailAttr, tailV, headAttr, headV, Session);
     }
@@ -252,7 +287,7 @@ namespace VelocityGraph
     /// <param name="etype">Edge type identifier.</param>
     /// <param name="dir">Direction.</param>
     /// <returns>Dictionary of vertex keys with edges path to vertex</returns>
-    public Dictionary<Vertex, HashSet<Edge>> Traverse(Dictionary<Vertex, HashSet<Edge>> vertices, EdgeType etype, EdgesDirection dir)
+    public Dictionary<Vertex, HashSet<Edge>> Traverse(Dictionary<Vertex, HashSet<Edge>> vertices, EdgeType etype, Direction dir)
     {
       Dictionary<Vertex, HashSet<Edge>> result = new Dictionary<Vertex, HashSet<Edge>>();
       foreach (KeyValuePair<Vertex, HashSet<Edge>> p in vertices)
@@ -276,7 +311,7 @@ namespace VelocityGraph
     /// <param name="property"></param>
     /// <param name="v"></param>
     /// <returns>the vertex matching</returns>
-    public Vertex? FindVertex(PropertyType property, object v)
+    public Vertex FindVertex(PropertyType property, object v)
     {
       return property.GetPropertyVertex(v, this); ;
     }
@@ -297,6 +332,15 @@ namespace VelocityGraph
     }
 
     public void SetPropertyDefaultValue(PropertyType property, object v)
+    {
+      throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// A shutdown function is required to properly close the graph.
+    /// This is important for implementations that utilize disk-based serializations.
+    /// </summary>
+    void IGraph.Shutdown()
     {
       throw new NotImplementedException();
     }
@@ -344,7 +388,35 @@ namespace VelocityGraph
       return vertexType.FindProperty(name);
     }
 
+    /// <summary>
+    /// Generate a query object that can be used to fine tune which edges/vertices are retrieved from the graph.
+    /// </summary>
+    /// <returns>a graph query object with methods for constraining which data is pulled from the underlying graph</returns>
+    IGraphQuery IGraph.Query()
+    {
+      throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Remove the provided edge from the graph.
+    /// </summary>
+    /// <param name="edge">the edge to remove from the graph</param>
+    void IGraph.RemoveEdge(IEdge edge)
+    {
+      throw new NotImplementedException();
+    }
+
     public void RemoveProperty(PropertyType attr)
+    {
+      throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Remove the provided vertex from the graph.
+    /// Upon removing the vertex, all the edges by which the vertex is connected must be removed as well.
+    /// </summary>
+    /// <param name="vertex">the vertex to remove from the graph</param>
+    void IGraph.RemoveVertex(IVertex vertex)
     {
       throw new NotImplementedException();
     }
@@ -371,9 +443,61 @@ namespace VelocityGraph
     /// <param name="etype">the id of an EdgeType</param>
     /// <param name="dir">direction, one of: Ingoing, Outgoing, Any</param>
     /// <returns>a set of Vertex</returns>
-    public Dictionary<Vertex, HashSet<Edge>> GetVertices(Dictionary<Vertex, HashSet<Edge>> vertices, EdgeTypeId etype, EdgesDirection dir)
+    public Dictionary<Vertex, HashSet<Edge>> GetVertices(Dictionary<Vertex, HashSet<Edge>> vertices, EdgeTypeId etype, Direction dir)
     {
       throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Return the vertex referenced by the provided object identifier.
+    /// If no vertex is referenced by that identifier, then return null.
+    /// </summary>
+    /// <param name="id">the identifier of the vertex to retrieved from the graph</param>
+    /// <returns>the vertex referenced by the provided identifier or null when no such vertex exists</returns>
+    public IVertex GetVertex(object id)
+    {
+      long t = (long)id;
+      VertexId vId = (VertexId) t;
+      VertexTypeId vTypeId = (VertexTypeId)t >> 32;
+      VertexType vt = vertexType[vTypeId];
+      return vt.GetVertex(this, vId);
+    }
+
+    /// <summary>
+    /// Return an iterable to all the vertices in the graph.
+    /// </summary>
+    /// <returns>an iterable reference to all vertices in the graph</returns>
+    public IEnumerable<IVertex> GetVertices()
+    {
+      List<IEnumerable<IVertex>> enums = new List<IEnumerable<IVertex>>();
+      MultiIterable<IVertex> multi = new MultiIterable<IVertex>(enums);
+      foreach (VertexType vt in vertexType)
+      {
+        foreach (EdgeType et in vt.EdgeTypes)
+          enums.Add(vt.GetVertices(this, et, Direction.Both));
+      }
+      return multi;
+    }
+
+    /// <summary>
+    /// Return an iterable to all the vertices in the graph that have a particular key/value property.
+    /// </summary>
+    /// <param name="key">the key of vertex</param>
+    /// <param name="value">the value of the vertex</param>
+    /// <returns>an iterable of vertices with provided key and value</returns>
+    IEnumerable<IVertex> IGraph.GetVertices(string key, object value)
+    {
+      foreach (IVertex iv in GetVertices())
+      {
+        Vertex v = iv as Vertex;
+        PropertyType pt = v.VertexType.FindProperty(key);
+        if (pt != null)
+        {
+          object aValue = v.VertexType.GetPropertyValue(v.VertexId, pt);
+          if (aValue.Equals(value))
+            yield return iv;
+        }
+      }
     }
 
     public HashSet<Edge> Edges(EdgeTypeId etype, Vertex tail, Vertex head)
@@ -398,12 +522,12 @@ namespace VelocityGraph
 
     public VertexType[] FindVertexTypes()
     {
-      throw new NotImplementedException();
+      return vertexType;
     }
 
     public EdgeType[] FindEdgeTypes()
     {
-      throw new NotImplementedException();
+      return edgeType;
     }
 
     public object[] GetValues(PropertyType property)

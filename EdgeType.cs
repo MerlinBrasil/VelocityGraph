@@ -10,6 +10,8 @@ using PropertyTypeId = System.Int32;
 using PropertyId = System.Int32;
 using TypeId = System.Int32;
 using VelocityDb.Collection.BTree;
+using Frontenac.Blueprints;
+using Frontenac.Blueprints.Util;
 
 namespace VelocityGraph
 {
@@ -91,6 +93,14 @@ namespace VelocityGraph
       throw new EdgeDoesNotExistException();
     }
 
+    public IEnumerable<IEdge> GetEdges(Graph g)
+    {
+      foreach (var m in edges)
+      {
+        yield return GetEdge(g, m.Key);
+      }
+    }
+
     public Edge GetEdge(Graph g, EdgeId edgeId, Vertex headVertex, Vertex tailVertex)
     {
       if (edges.Contains(edgeId))
@@ -103,6 +113,18 @@ namespace VelocityGraph
     public int GetHashCode(EdgeType aIssue)
     {
       return typeId.GetHashCode();
+    }
+
+    /// <summary>
+    /// Return all the keys associated with the edge type.
+    /// </summary>
+    /// <returns>the set of all string keys associated with the edge type</returns>
+    public IEnumerable<string> GetPropertyKeys()
+    {
+      foreach (var pair in stringToPropertyType)
+      {
+        yield return pair.Key;
+      }
     }
 
     /// <summary>
@@ -163,6 +185,15 @@ namespace VelocityGraph
       return edge;
     }
 
+    public void RemoveEdge(Edge edge)
+    {
+      Update();
+      edges.Remove(edge.EdgeId);
+      tailType.RemoveTailToHeadEdge(this, edge, edge.Tail.VertexId, edge.Head.VertexId, headType);
+      if (directed == false)
+        headType.RemoveHeadToTailEdge(this, edge, edge.Tail.VertexId, edge.Head.VertexId, tailType);
+    }
+
     public Edge NewEdgeX(PropertyType[] propertyType, PropertyType tailAttr, object tailV, PropertyType headAttr, object headV, SessionBase session)
     {
       throw new NotImplementedException("don't yet know what it is supposed to do");
@@ -173,6 +204,14 @@ namespace VelocityGraph
       get
       {
         return typeId;
+      }
+    }
+
+    public string TypeName
+    {
+      get
+      {
+        return typeName;
       }
     }
 

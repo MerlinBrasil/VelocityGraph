@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>VelocityGraph</RootNamespace>
     <AssemblyName>VelocityGraph</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -21,6 +21,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -29,6 +30,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -43,6 +45,7 @@
     <Compile Include="Edge.cs" />
     <Compile Include="EdgeDoesNotExistException.cs" />
     <Compile Include="EdgeType.cs" />
+    <Compile Include="Element.cs" />
     <Compile Include="Vertex.cs" />
     <Compile Include="InvalidPropertyIdException.cs" />
     <Compile Include="InvalidTypeIdException.cs" />
@@ -55,10 +58,17 @@
     <Compile Include="Graph.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Blueprints\Blueprints\blueprints-core\blueprints-core.csproj">
+      <Project>{42ed5d37-0e20-4fc3-b6b1-f38a08283c30}</Project>
+      <Name>blueprints-core</Name>
+    </ProjectReference>
     <ProjectReference Include="..\VelocityDb\VelocityDb.csproj">
       <Project>{a5f9e1fc-e2f5-4e66-bdb1-3b244495efda}</Project>
       <Name>VelocityDb</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

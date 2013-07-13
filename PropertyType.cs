@@ -7,6 +7,7 @@ using ElementId = System.Int32;
 using PropertyTypeId = System.Int32;
 using PropertyId = System.Int32;
 using TypeId = System.Int32;
+using Frontenac.Blueprints;
 
 namespace VelocityGraph
 {
@@ -57,9 +58,10 @@ namespace VelocityGraph
       }
     }
 
-    abstract public Vertex? GetPropertyVertex(object value, Graph g);
-    abstract public Edge? GetPropertyEdge(object value, Graph g);
+    abstract public Vertex GetPropertyVertex(object value, Graph g);
+    abstract public Edge GetPropertyEdge(object value, Graph g);
     abstract public object GetPropertyValue(ElementId elementId);
     abstract public void SetPropertyValue(ElementId elementId, object value);
+    abstract public object RemovePropertyValue(ElementId elementId);
   }
 }

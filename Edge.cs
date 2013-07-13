@@ -5,6 +5,7 @@ using System.Text;
 using TypeId = System.Int32;
 using EdgeId = System.Int32;
 using PropertyId = System.Int32;
+using Frontenac.Blueprints;
 
 namespace VelocityGraph
 {
@@ -14,28 +15,24 @@ namespace VelocityGraph
   /// The edge label determines the type of relationship that exists between the two vertices.
   /// Diagrammatically, outVertex ---label---> inVertex.
   /// </summary>
-  public struct Edge
+  public class Edge : Element, IEdge
   {
     EdgeType edgeType;
-    EdgeId edgetId;
     Vertex tail;
     Vertex head;
-    Graph graph;
 
-    internal Edge(Graph g, EdgeType eType, EdgeId eId, Vertex h, Vertex t)
+    internal Edge(Graph g, EdgeType eType, EdgeId eId, Vertex h, Vertex t):base(eId, g)
     {
       edgeType = eType;
-      edgetId = eId;
       tail = t;
       head = h;
-      graph = g;
     }
 
     public EdgeId EdgeId
     {
       get
       {
-        return edgetId;
+        return id;
       }
     }
 
@@ -45,6 +42,51 @@ namespace VelocityGraph
       {
         return edgeType;
       }
+    }
+
+    /// <summary>
+    /// Return the label associated with the edge.
+    /// </summary>
+    /// <returns>the edge label</returns>
+    string IEdge.GetLabel()
+    {
+      return edgeType.TypeName;
+    }
+
+    /// <summary>
+    /// Return the object value associated with the provided string key.
+    /// If no value exists for that key, return null.
+    /// </summary>
+    /// <param name="key">the key of the key/value property</param>
+    /// <returns>the object value related to the string key</returns>
+    public override object GetProperty(string key)
+    {
+      PropertyType pt = edgeType.FindProperty(key);
+      return edgeType.GetPropertyValue(id, pt);
+    }
+
+    /// <summary>
+    /// Return all the keys associated with the element.
+    /// </summary>
+    /// <returns>the set of all string keys associated with the element</returns>
+    public override IEnumerable<string> GetPropertyKeys()
+    {
+      return edgeType.GetPropertyKeys();
+    }
+
+    /// <summary>
+    /// Return the tail/out or head/in vertex.
+    /// ArgumentException is thrown if a direction of both is provided
+    /// </summary>
+    /// <param name="direction">whether to return the tail/out or head/in vertex</param>
+    /// <returns>the tail/out or head/in vertex</returns>
+    IVertex IEdge.GetVertex(Direction direction)
+    {
+      if (direction == Direction.In)
+        return head;
+      if (direction == Direction.Out)
+        return tail;
+      throw new ArgumentException("A direction of BOTH is not supported");
     }
 
     public Vertex Tail
@@ -70,7 +112,31 @@ namespace VelocityGraph
     /// <returns>The other end of the edge.</returns>
     public Vertex GetEdgePeer(Vertex vertex)
     {
-      throw new NotImplementedException();
+      if (head == vertex)
+        return tail;
+      if (tail == vertex)
+        return head;
+      throw new ArgumentException("Vertex argument must be either Head or Tail Vertex");
+    }
+
+    /// <summary>
+    /// Remove the edge from the graph.
+    /// </summary>
+    public override void Remove()
+    {
+      edgeType.RemoveEdge(this);
+    }
+
+    /// <summary>
+    /// Un-assigns a key/value property from the edge.
+    /// The object value of the removed property is returned.
+    /// </summary>
+    /// <param name="key">the key of the property to remove from the edge</param>
+    /// <returns>the object value associated with that key prior to removal</returns>
+    public override object RemoveProperty(string key)
+    {
+      PropertyType pt = edgeType.FindProperty(key);
+      return pt.RemovePropertyValue(id);
     }
 
     public void SetProperty(PropertyType property, object v)
@@ -79,6 +145,18 @@ namespace VelocityGraph
         edgeType.SetPropertyValue(EdgeId, property, v);
       else
         throw new InvalidTypeIdException();
+    }
+
+    /// <summary>
+    /// Assign a key/value property to the edge.
+    /// If a value already exists for this key, then the previous key/value is overwritten.
+    /// </summary>
+    /// <param name="key">the string key of the property</param>
+    /// <param name="value">the object value o the property</param>
+    public override void SetProperty(string key, object value)
+    {
+      PropertyType pt = edgeType.FindProperty(key);
+      edgeType.SetPropertyValue(EdgeId, pt, value);
     }
   }
 }

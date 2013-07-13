@@ -10,6 +10,7 @@ using PropertyId = System.Int32;
 using TypeId = System.Int32;
 using VertexId = System.Int32;
 using EdgeId = System.Int32;
+using Frontenac.Blueprints;
 
 namespace VelocityGraph
 {
@@ -38,6 +39,33 @@ namespace VelocityGraph
     {
       T pv = propertyValue[oid];
       return pv;
+    }    
+    
+    T RemovePropertyValueT(ElementId oid)
+    {
+      T pv = propertyValue[oid];
+      propertyValue.Remove(oid);
+      if (valueIndex != null)
+      {
+        if (valueIndex.TryGetKey(pv, ref pv))
+        {
+          ElementId[] oidArray = valueIndex[pv];
+          if (oidArray.Length > 1)
+          {
+            ElementId[] oidArrayReduced = new ElementId[oidArray.Length - 1];
+            int i = 0;
+            foreach (ElementId eId in oidArray)
+              if (eId != oid)
+                oidArrayReduced[i++] = eId;
+            valueIndex[pv] = oidArrayReduced;
+          }
+          else
+            valueIndex.Remove(pv);
+        }
+      }
+      else if (valueIndexUnique != null)
+        valueIndexUnique.Remove(pv);
+      return pv;
     }
 
     void SetPropertyValueX(ElementId element, T aValue)
@@ -64,7 +92,7 @@ namespace VelocityGraph
         valueIndexUnique.Add(aValue, element);
     }
 
-    public Vertex? GetPropertyVertex(T value, Graph g)
+    public Vertex GetPropertyVertex(T value, Graph g)
     {
       VertexId elementId = -1;
       if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
@@ -79,14 +107,14 @@ namespace VelocityGraph
       return vertexType.GetVertex(g, elementId);
     }
 
-    public override Vertex? GetPropertyVertex(object value, Graph g)
+    public override Vertex GetPropertyVertex(object value, Graph g)
     {
       if (IsVertexProperty == false)
         throw new InvalidTypeIdException();
       return GetPropertyVertex((T) value, g);
     }
 
-    public Edge? GetPropertyEdge(T value, Graph g)
+    public Edge GetPropertyEdge(T value, Graph g)
     {
       EdgeId elementId = -1;
       if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
@@ -101,7 +129,7 @@ namespace VelocityGraph
       return edgeType.GetEdge(g, elementId);
     }
 
-    public override Edge? GetPropertyEdge(object value, Graph g)
+    public override Edge GetPropertyEdge(object value, Graph g)
     {
       if (IsVertexProperty == false)
         throw new InvalidTypeIdException();
@@ -109,6 +137,11 @@ namespace VelocityGraph
     }
 
     public override object GetPropertyValue(ElementId element)
+    {
+      return GetPropertyValueT(element);
+    }
+
+    public override object RemovePropertyValue(ElementId element)
     {
       return GetPropertyValueT(element);
     }

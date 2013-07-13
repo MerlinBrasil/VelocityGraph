@@ -11,6 +11,7 @@ using PropertyTypeId = System.Int32;
 using PropertyId = System.Int32;
 using TypeId = System.Int32;
 using EdgeIdVertexId = System.UInt64;
+using Frontenac.Blueprints;
 
 namespace VelocityGraph
 {
@@ -21,6 +22,7 @@ namespace VelocityGraph
     BTreeSet<VertexId> vertecis;
     internal BTreeMap<string, PropertyType> stringToPropertyType;
     internal PropertyType[] vertexProperties;
+    BTreeSet<EdgeType> edgeTypes;
     BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>> tailToHeadEdges;
     BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>> headToTailEdges;
     VertexId nodeCt;
@@ -31,10 +33,19 @@ namespace VelocityGraph
       typeName = aTypeName;
       vertecis = new BTreeSet<VertexId>(null, session);
       stringToPropertyType = new BTreeMap<string, PropertyType>(null, session);
+      edgeTypes = new BTreeSet<EdgeType>(null, session);
       tailToHeadEdges = new BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>(null, session);
       headToTailEdges = new BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>(null, session);
       vertexProperties = new PropertyType[0];
       nodeCt = 0;
+    }
+
+    public BTreeSet<EdgeType> EdgeTypes
+    {
+      get
+      {
+        return edgeTypes;
+      }
     }
 
     protected EdgeIdVertexId edgeVertexId(Edge edge, VertexId vertexId)
@@ -64,6 +75,7 @@ namespace VelocityGraph
         innerMap.Add(tail, set);
         map.Add(headType, innerMap);
         tailToHeadEdges.Add(edgeType, map);
+        edgeTypes.Add(edgeType);
       }
       else if (!map.TryGetValue(headType, out innerMap))
       {
@@ -78,6 +90,17 @@ namespace VelocityGraph
         innerMap.Add(tail, set);
       }
       set.Add(edgeVertexId(edge, head));
+    }    
+    
+    public void RemoveTailToHeadEdge(EdgeType edgeType, Edge edge, VertexId tail, VertexId head, VertexType headType)
+    {
+      BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
+      BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>> innerMap;
+      BTreeSet<EdgeIdVertexId> set;
+      if (tailToHeadEdges.TryGetValue(edgeType, out map))
+        if (map.TryGetValue(headType, out innerMap))
+          if (innerMap.TryGetValue(tail, out set))
+            set.Remove(edgeVertexId(edge, head));
     }
 
     public void NewHeadToTailEdge(EdgeType edgeType, Edge edge, VertexId tail, VertexId head, VertexType tailType, SessionBase session)
@@ -93,6 +116,7 @@ namespace VelocityGraph
         innerMap.Add(tail, set);
         map.Add(tailType, innerMap);
         headToTailEdges.Add(edgeType, map);
+        edgeTypes.Add(edgeType);
       }
       else if (!map.TryGetValue(tailType, out innerMap))
       {
@@ -107,6 +131,17 @@ namespace VelocityGraph
         innerMap.Add(tail, set);
       }
       set.Add(edgeVertexId(edge, head));
+    }    
+    
+    public void RemoveHeadToTailEdge(EdgeType edgeType, Edge edge, VertexId tail, VertexId head, VertexType tailType)
+    {
+      BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
+      BTreeMap<EdgeId, BTreeSet<EdgeIdVertexId>> innerMap;
+      BTreeSet<EdgeIdVertexId> set;
+      if (headToTailEdges.TryGetValue(edgeType, out map))
+        if (map.TryGetValue(tailType, out innerMap))
+          if (innerMap.TryGetValue(tail, out set))
+            set.Remove(edgeVertexId(edge, head));
     }
 
     public Vertex NewVertex(Graph g)
@@ -121,14 +156,14 @@ namespace VelocityGraph
       return new Vertex(g, aVertexType, nodeCt++);
     }
 
-    public Dictionary<Vertex, HashSet<Edge>> Traverse(Graph g, Vertex vertex1, EdgeType etype, EdgesDirection dir)
+    public Dictionary<Vertex, HashSet<Edge>> Traverse(Graph g, Vertex vertex1, EdgeType etype, Direction dir)
     {
       Dictionary<Vertex, HashSet<Edge>> result = new Dictionary<Vertex, HashSet<Edge>>();
       BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
       BTreeSet<EdgeIdVertexId> set;
       switch (dir)
       {
-        case EdgesDirection.Outgoing:
+        case Direction.Out:
           if (tailToHeadEdges.TryGetValue(etype, out map))
           {
             foreach (KeyValuePair<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> pair in map)
@@ -153,7 +188,7 @@ namespace VelocityGraph
             }
           }
           break;
-        case EdgesDirection.Ingoing:
+        case Direction.In:
           if (headToTailEdges.TryGetValue(etype, out map))
           {
             foreach (KeyValuePair<VertexType, BTreeMap<EdgeId, BTreeSet<EdgeIdVertexId>>> pair in map)
@@ -178,7 +213,7 @@ namespace VelocityGraph
             }
           }
           break;
-        case EdgesDirection.Any:
+        case Direction.Both:
           if (tailToHeadEdges.TryGetValue(etype, out map))
           {
             foreach (KeyValuePair<VertexType, BTreeMap<EdgeId, BTreeSet<EdgeIdVertexId>>> pair in map)
@@ -295,6 +330,245 @@ namespace VelocityGraph
         return anPropertyType;
       }
       return null;
+    }
+
+    /// <summary>
+    /// Return all the keys associated with the vertex type.
+    /// </summary>
+    /// <returns>the set of all string keys associated with the vertex type</returns>
+    public IEnumerable<string> GetPropertyKeys()
+    {
+      foreach (var pair in stringToPropertyType)
+      {
+        yield return pair.Key;
+      }
+    }
+
+    public IEnumerable<IEdge> GetEdges(Graph g, EdgeType etype, Direction dir)
+    {
+      BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
+      switch (dir)
+      {
+        case Direction.Out:
+          if (tailToHeadEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                Vertex vertex1 = GetVertex(g, p2.Key);
+                foreach (long l in p2.Value)
+                {
+                  VertexId vId = (int)l;
+                  Vertex vertex2 = GetVertex(g, vId);
+                  EdgeId eId = (int)l >> 32;
+                  Edge edge = etype.GetEdge(g, eId, vertex1, vertex2);
+                  yield return edge;
+                }
+              }
+          break;
+        case Direction.In:
+          if (headToTailEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                Vertex vertex1 = GetVertex(g, p2.Key);
+                foreach (long l in p2.Value)
+                {
+                  VertexId vId = (int)l;
+                  Vertex vertex2 = GetVertex(g, vId);
+                  EdgeId eId = (int)l >> 32;
+                  Edge edge = etype.GetEdge(g, eId, vertex1, vertex2);
+                  yield return edge;
+                }
+              }
+          break;
+        case Direction.Both:
+          if (tailToHeadEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                Vertex vertex1 = GetVertex(g, p2.Key);
+                foreach (long l in p2.Value)
+                {
+                  VertexId vId = (int)l;
+                  Vertex vertex2 = GetVertex(g, vId);
+                  EdgeId eId = (int)l >> 32;
+                  Edge edge = etype.GetEdge(g, eId, vertex1, vertex2);
+                  yield return edge;
+                }
+              };
+          if (headToTailEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                Vertex vertex1 = GetVertex(g, p2.Key);
+                foreach (long l in p2.Value)
+                {
+                  VertexId vId = (int)l;
+                  Vertex vertex2 = GetVertex(g, vId);
+                  EdgeId eId = (int)l >> 32;
+                  Edge edge = etype.GetEdge(g, eId, vertex1, vertex2);
+                  yield return edge;
+                }
+              }
+          break;
+      }
+    }
+
+    public long GetNumberOfEdges(EdgeType etype, Direction dir)
+    {
+      BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
+      long numberOfEdges = 0;
+      switch (dir)
+      {
+        case Direction.Out:
+          if (tailToHeadEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                numberOfEdges += p2.Value.Count;
+              }
+          break;
+        case Direction.In:
+          if (headToTailEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                numberOfEdges += p2.Value.Count;
+              }
+          break;
+        case Direction.Both:
+          if (tailToHeadEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                numberOfEdges += p2.Value.Count;
+              }
+          if (headToTailEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                numberOfEdges += p2.Value.Count;
+              }
+          break;
+          }
+      return numberOfEdges;
+    }
+
+    public IEnumerable<IVertex> GetVertices(Graph g, EdgeType etype, Direction dir)
+    {
+      BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
+      switch (dir)
+      {
+        case Direction.Out:
+          if (tailToHeadEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                Vertex vertex1 = GetVertex(g, p2.Key);
+                yield return vertex1;
+                foreach (long l in p2.Value)
+                {
+                  VertexId vId = (int)l;
+                  Vertex vertex2 = GetVertex(g, vId);
+                  yield return vertex2;
+                }
+              }
+          break;
+        case Direction.In:
+          if (headToTailEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                Vertex vertex1 = GetVertex(g, p2.Key);
+                yield return vertex1;
+                foreach (long l in p2.Value)
+                {
+                  VertexId vId = (int)l;
+                  Vertex vertex2 = GetVertex(g, vId);
+                  yield return vertex2;
+                }
+              }
+          break;
+        case Direction.Both:
+          if (tailToHeadEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                Vertex vertex1 = GetVertex(g, p2.Key);
+                yield return vertex1;
+                foreach (long l in p2.Value)
+                {
+                  VertexId vId = (int)l;
+                  Vertex vertex2 = GetVertex(g, vId);
+                  yield return vertex2;
+                }
+              };
+          if (headToTailEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                Vertex vertex1 = GetVertex(g, p2.Key);
+                yield return vertex1;
+                foreach (long l in p2.Value)
+                {
+                  VertexId vId = (int)l;
+                  Vertex vertex2 = GetVertex(g, vId);
+                  yield return vertex2;
+                }
+              }
+          break;
+      }
+    }
+
+    public void RemoveVertex(Vertex vertex)
+    {
+      vertecis.Remove(vertex.VertexId);
+      BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>> innerMap;
+      BTreeSet<EdgeIdVertexId> set;
+      foreach (var m in headToTailEdges)
+        if (m.Value.TryGetValue(this, out innerMap))
+          if (innerMap.TryGetValue(vertex.VertexId, out set))
+          {
+            innerMap.Remove(vertex.VertexId);
+            set.Unpersist(Session);
+          }
+          else
+          {      
+            foreach (var n in innerMap)
+            {
+              List<EdgeIdVertexId> toRemove = new List<EdgeIdVertexId>();
+              foreach (EdgeIdVertexId l in n.Value)
+              {
+                int i = (int)l;
+                if (i == vertex.VertexId)
+                  toRemove.Add(l);
+              }
+              foreach (EdgeIdVertexId l in toRemove)
+                n.Value.Remove(l);
+            }
+          }
+      foreach (var m in tailToHeadEdges)
+        if (m.Value.TryGetValue(this, out innerMap))
+          if (innerMap.TryGetValue(vertex.VertexId, out set))
+          {
+            innerMap.Remove(vertex.VertexId);
+            set.Unpersist(Session);
+          }
+          else
+          {
+            foreach (var n in innerMap)
+            {
+              List<EdgeIdVertexId> toRemove = new List<EdgeIdVertexId>();
+              foreach (EdgeIdVertexId l in n.Value)
+              {
+                int i = (int)l;
+                if (i == vertex.VertexId)
+                  toRemove.Add(l);
+              }
+              foreach (EdgeIdVertexId l in toRemove)
+                n.Value.Remove(l);
+            }
+          }
     }
 
     public object GetPropertyValue(VertexId vertexId, PropertyType propertyId)

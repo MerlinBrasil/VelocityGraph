@@ -14,7 +14,8 @@ Read more on the [VelocityGraph website](http://www.VelocityGraph.com).
 Using VelocityGraph
 -----------
 
-Use this graph database with .NET 4.x. You can [download](http://www.VelocityGraph.com/Secure/Download.aspx/) VelocityGraph, it is part of the sample solution that comes with [VelocityDB](http://www.VelocityDB.com).
+Use this graph database with .NET 4.5. You can [download](http://www.VelocityGraph.com/Secure/Download.aspx/) VelocityGraph, it is part of the sample solution that comes with [VelocityDB](http://www.VelocityDB.com).
+VelocityGraph implements the graph API standard Blueprints, the code uses https://github.com/Loupi/Frontenac.
 
 Licensing
 ---------
