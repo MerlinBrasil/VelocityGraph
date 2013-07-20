@@ -23,6 +23,7 @@ namespace VelocityGraph
     public abstract IEnumerable<string> GetPropertyKeys();
 
     public abstract object GetProperty(string key);
+    public abstract T GetProperty<T>(string key);
 
     /// <summary>
     /// Assign a key/value property to the element.
@@ -32,6 +33,13 @@ namespace VelocityGraph
     /// <param name="value">the object value o the property</param>
     public abstract void SetProperty(string key, object value);
 
+    /// <summary>
+    /// Assign a key/value property to the element.
+    /// If a value already exists for this key, then the previous key/value is overwritten.
+    /// </summary>
+    /// <param name="key">the string key of the property</param>
+    /// <param name="value">the T value o the property</param>
+    public abstract void SetProperty<T>(string key, T value);
     /// <summary>
     /// Un-assigns a key/value property from the element.
     /// The object value of the removed property is returned.

@@ -64,6 +64,18 @@ namespace VelocityGraph
     }
 
     /// <summary>
+    /// Return the object value associated with the provided string key.
+    /// If no value exists for that key, return null.
+    /// </summary>
+    /// <param name="key">the key of the key/value property</param>
+    /// <returns>the object value related to the string key</returns>
+    public override T GetProperty<T>(string key)
+    {
+      PropertyType pt = vertexType.FindProperty(key);
+      return (T) vertexType.GetPropertyValue(id, pt);
+    }
+
+    /// <summary>
     /// Return all the keys associated with the vertex.
     /// </summary>
     /// <returns>the set of all string keys associated with the vertex</returns>
@@ -216,6 +228,18 @@ namespace VelocityGraph
     /// <param name="key">the string key of the property</param>
     /// <param name="value">the object value o the property</param>
     public override void SetProperty(string key, object value)
+    {
+      PropertyType pt = vertexType.FindProperty(key);
+      vertexType.SetPropertyValue(VertexId, pt, value);
+    }    
+    
+    /// <summary>
+    /// Assign a key/value property to the vertex.
+    /// If a value already exists for this key, then the previous key/value is overwritten.
+    /// </summary>
+    /// <param name="key">the string key of the property</param>
+    /// <param name="value">the object value o the property</param>
+    public override void SetProperty<T>(string key, T value)
     {
       PropertyType pt = vertexType.FindProperty(key);
       vertexType.SetPropertyValue(VertexId, pt, value);

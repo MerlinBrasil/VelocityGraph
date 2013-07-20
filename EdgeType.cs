@@ -23,10 +23,10 @@ namespace VelocityGraph
     BTreeMap<string, PropertyType> stringToPropertyType;
     bool directed;
     ElementId edgeCt;
-    VertexType tailType;
     VertexType headType;
+    VertexType tailType;
 
-    public EdgeType(TypeId aTypeId, string aTypeName, bool directed, SessionBase session, bool restricted = false)
+    public EdgeType(TypeId aTypeId, string aTypeName, VertexType tailType, VertexType headType, bool directed, SessionBase session)
     {
       this.directed = directed;
       //   if (directed == false)
@@ -37,23 +37,8 @@ namespace VelocityGraph
       edges = new BTreeMap<EdgeId, VertexId[]>(null, session);
       stringToPropertyType = new BTreeMap<string, PropertyType>(null, session);
       edgeCt = 0;
-      tailType = null;
-      headType = null;
-    }
-
-    public EdgeType(TypeId aTypeId, string aTypeName, VertexType tail, VertexType head, bool directed, SessionBase session)
-    {
-      this.directed = directed;
-      //   if (directed == false)
-      //     edgeHeadToTail = new Dictionary<long, long>();
-      //   edgeTailToHead = new Dictionary<long, long>();
-      typeId = aTypeId;
-      typeName = aTypeName;
-      edges = new BTreeMap<EdgeId, VertexId[]>(null, session);
-      stringToPropertyType = new BTreeMap<string, PropertyType>(null, session);
-      edgeCt = 0;
-      tailType = tail;
-      headType = head;
+      this.tailType = tailType;
+      this.headType = headType;
     }
 
     /// <summary>
@@ -93,7 +78,7 @@ namespace VelocityGraph
       throw new EdgeDoesNotExistException();
     }
 
-    public IEnumerable<IEdge> GetEdges(Graph g)
+    public IEnumerable<Edge> GetEdges(Graph g)
     {
       foreach (var m in edges)
       {
@@ -174,14 +159,14 @@ namespace VelocityGraph
       return aType;
     }
 
-    public Edge NewEdge(Graph g, Vertex tail, VertexType tailType, Vertex head, VertexType headType, SessionBase session)
+    public Edge NewEdge(Graph g, Vertex tail, Vertex head, SessionBase session)
     {
       Update();
       edges.Add(edgeCt, new VertexId[] { head.VertexId, tail.VertexId });
       Edge edge = new Edge(g, this, edgeCt++, head, tail);
-      tailType.NewTailToHeadEdge(this, edge, tail.VertexId, head.VertexId, headType, session);
+      tail.VertexType.NewTailToHeadEdge(this, edge, tail.VertexId, head.VertexId, head.VertexType, session);
       if (directed == false)
-        headType.NewHeadToTailEdge(this, edge, tail.VertexId, head.VertexId, tailType, session);
+        head.VertexType.NewHeadToTailEdge(this, edge, tail.VertexId, head.VertexId, tail.VertexType, session);
       return edge;
     }
 

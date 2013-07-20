@@ -114,6 +114,28 @@ namespace VelocityGraph
       return GetPropertyVertex((T) value, g);
     }
 
+    public IEnumerable<Vertex> GetPropertyVertices(T value, Graph g)
+    {
+      VertexId elementId = -1;
+      VertexType vertexType = g.vertexType[TypeId];
+      if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
+      {
+        ElementId[] elementIds;
+        if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
+          foreach (ElementId eId in elementIds)
+            yield return vertexType.GetVertex(g, eId);
+      }
+      if (elementId != -1)
+        yield return vertexType.GetVertex(g, elementId);
+    }
+
+    public override IEnumerable<Vertex> GetPropertyVertices(object value, Graph g)
+    {
+      if (IsVertexProperty == false)
+        throw new InvalidTypeIdException();
+      return GetPropertyVertices((T)value, g);
+    }
+
     public Edge GetPropertyEdge(T value, Graph g)
     {
       EdgeId elementId = -1;
@@ -127,6 +149,28 @@ namespace VelocityGraph
         return null;
       EdgeType edgeType = g.edgeType[TypeId];
       return edgeType.GetEdge(g, elementId);
+    }
+
+    public IEnumerable<Edge> GetPropertyEdges(T value, Graph g)
+    {
+      EdgeId elementId = -1;
+      EdgeType edgeType = g.edgeType[TypeId];
+      if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
+      {
+        ElementId[] elementIds;
+        if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
+          foreach (ElementId eId in elementIds)
+            yield return edgeType.GetEdge(g, eId);
+      }
+      if (elementId != -1)     
+        yield return edgeType.GetEdge(g, elementId);
+    }
+
+    public override IEnumerable<Edge> GetPropertyEdges(object value, Graph g)
+    {
+      if (IsVertexProperty == false)
+        throw new InvalidTypeIdException();
+      return GetPropertyEdges((T)value, g);
     }
 
     public override Edge GetPropertyEdge(object value, Graph g)

@@ -59,7 +59,9 @@ namespace VelocityGraph
     }
 
     abstract public Vertex GetPropertyVertex(object value, Graph g);
+    abstract public IEnumerable<Vertex> GetPropertyVertices(object value, Graph g);
     abstract public Edge GetPropertyEdge(object value, Graph g);
+    abstract public IEnumerable<Edge> GetPropertyEdges(object value, Graph g);
     abstract public object GetPropertyValue(ElementId elementId);
     abstract public void SetPropertyValue(ElementId elementId, object value);
     abstract public object RemovePropertyValue(ElementId elementId);
