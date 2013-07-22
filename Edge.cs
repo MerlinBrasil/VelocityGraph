@@ -45,6 +45,20 @@ namespace VelocityGraph
     }
 
     /// <summary>
+    /// An identifier that is unique to its inheriting class.
+    /// All vertices of a graph must have unique identifiers.
+    /// All edges of a graph must have unique identifiers.
+    /// </summary>
+    /// <returns>the identifier of the element</returns>
+    public override object GetId()
+    {
+      UInt64 fullId = (UInt64)edgeType.TypeId;
+      fullId <<= 32;
+      fullId += (UInt64)id;
+      return fullId;
+    }
+
+    /// <summary>
     /// Return the label associated with the edge.
     /// </summary>
     /// <returns>the edge label</returns>
@@ -62,6 +76,8 @@ namespace VelocityGraph
     public override object GetProperty(string key)
     {
       PropertyType pt = edgeType.FindProperty(key);
+      if (pt == null)
+        return null;
       return edgeType.GetPropertyValue(id, pt);
     }
 
@@ -74,6 +90,8 @@ namespace VelocityGraph
     public override T GetProperty<T>(string key)
     {
       PropertyType pt = edgeType.FindProperty(key);
+      if (pt == null)
+        return default(T);
       return (T) edgeType.GetPropertyValue(id, pt);
     }
 
@@ -83,7 +101,11 @@ namespace VelocityGraph
     /// <returns>the set of all string keys associated with the element</returns>
     public override IEnumerable<string> GetPropertyKeys()
     {
-      return edgeType.GetPropertyKeys();
+      foreach (string key in edgeType.GetPropertyKeys())
+      {
+        if (GetProperty(key) != null)
+          yield return key;
+      }
     }
 
     /// <summary>
@@ -167,7 +189,13 @@ namespace VelocityGraph
     /// <param name="value">the object value o the property</param>
     public override void SetProperty(string key, object value)
     {
+      if (key == null || key.Length == 0)
+        throw new ArgumentException("Property key may not be null or be an empty string");
       PropertyType pt = edgeType.FindProperty(key);
+      if (pt == null)
+      {
+        pt = edgeType.graph.NewEdgeProperty(edgeType, key, DataType.Object, PropertyKind.Indexed);
+      }
       edgeType.SetPropertyValue(EdgeId, pt, value);
     }
 
@@ -180,6 +208,10 @@ namespace VelocityGraph
     public override void SetProperty<T>(string key, T value)
     {
       PropertyType pt = edgeType.FindProperty(key);
+      if (pt == null)
+      {
+        pt = edgeType.graph.NewEdgeProperty(edgeType, key, DataType.Object, PropertyKind.Indexed);
+      }
       edgeType.SetPropertyValue(EdgeId, pt, value);
     } 
   }

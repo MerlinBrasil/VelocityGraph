@@ -22,7 +22,8 @@ namespace VelocityGraph
   {
     VertexType vertexType;
 
-    internal Vertex(Graph g, VertexType eType, VertexId eId):base(eId, g)
+    internal Vertex(Graph g, VertexType eType, VertexId eId)
+      : base(eId, g)
     {
       vertexType = eType;
     }
@@ -32,6 +33,20 @@ namespace VelocityGraph
       EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
       EdgeType edgeType = graph.edgeType[edgeTypeId];
       return graph.NewEdge(edgeType, this, inVertex as Vertex);
+    }
+
+    /// <summary>
+    /// An identifier that is unique to its inheriting class.
+    /// All vertices of a graph must have unique identifiers.
+    /// All edges of a graph must have unique identifiers.
+    /// </summary>
+    /// <returns>the identifier of the element</returns>
+    public override object GetId()
+    {
+      UInt64 fullId = (UInt64)vertexType.TypeId;
+      fullId <<= 32;
+      fullId += (UInt64)id;
+      return fullId;
     }
 
     /// <summary>
@@ -72,7 +87,7 @@ namespace VelocityGraph
     public override T GetProperty<T>(string key)
     {
       PropertyType pt = vertexType.FindProperty(key);
-      return (T) vertexType.GetPropertyValue(id, pt);
+      return (T)vertexType.GetPropertyValue(id, pt);
     }
 
     /// <summary>
@@ -137,26 +152,26 @@ namespace VelocityGraph
         MultiIterable<IEdge> multi = new MultiIterable<IEdge>(enums);
         return multi;
       }
-      return new IEdge[0];   
+      return new IEdge[0];
     }
 
     IEnumerable<IEdge> GetOutEdges(params string[] labels)
     {
-      List<IEnumerable<IEdge>> enums = new List<IEnumerable<IEdge>>();  
       if (labels.Length == 0)
-        return vertexType.GetEdges(graph, this, Direction.Out);
-      foreach (string label in labels)
       {
-        EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
-        EdgeType edgeType = graph.edgeType[edgeTypeId];
-        enums.Add(vertexType.GetEdges(graph, edgeType, this, Direction.Out));
+        foreach (IEdge edge in vertexType.GetEdges(graph, this, Direction.Out))
+          yield return edge;
       }
-      if (enums.Count > 0)
+      else
       {
-        MultiIterable<IEdge> multi = new MultiIterable<IEdge>(enums);
-        return multi;
+        foreach (string label in labels)
+        {
+          EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
+          EdgeType edgeType = graph.edgeType[edgeTypeId];
+          foreach (IEdge edge in vertexType.GetEdges(graph, edgeType, this, Direction.Out))
+            yield return edge;
+        }
       }
-      return new IEdge[0];   
     }
 
     /// <summary>
@@ -243,8 +258,8 @@ namespace VelocityGraph
     {
       PropertyType pt = vertexType.FindProperty(key);
       vertexType.SetPropertyValue(VertexId, pt, value);
-    }    
-    
+    }
+
     /// <summary>
     /// Assign a key/value property to the vertex.
     /// If a value already exists for this key, then the previous key/value is overwritten.

@@ -37,8 +37,10 @@ namespace VelocityGraph
 
     T GetPropertyValueT(ElementId oid)
     {
-      T pv = propertyValue[oid];
-      return pv;
+      T pv;
+      if (propertyValue.TryGetValue(oid, out pv))
+        return pv;
+      return default(T);
     }    
     
     T RemovePropertyValueT(ElementId oid)
@@ -187,7 +189,7 @@ namespace VelocityGraph
 
     public override object RemovePropertyValue(ElementId element)
     {
-      return GetPropertyValueT(element);
+      return RemovePropertyValueT(element);
     }
 
     public override void SetPropertyValue(ElementId element, object value)

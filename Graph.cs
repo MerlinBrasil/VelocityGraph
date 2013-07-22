@@ -62,7 +62,8 @@ namespace VelocityGraph
     internal EdgeType[] edgeType;
     //BTreeMap<string, EdgeType> stringToRestrictedEdgeType;
     //internal EdgeType[] restrictedEdgeType;
-    int nodeOrEdgeTypeCt;
+    int vertexTypeCt;
+    int edgeTypeCt;
     internal PropertyType[] propertyType;
     [NonSerialized]
     SessionBase session;
@@ -106,7 +107,8 @@ namespace VelocityGraph
 
     public Graph(SessionBase session)
     {
-      nodeOrEdgeTypeCt = 0;
+      edgeTypeCt = 0;
+      vertexTypeCt = 0;
       stringToVertexType = new BTreeMap<string, VertexType>(null, session);
       vertexType = new VertexType[0];
       stringToEdgeType = new BTreeMap<string, EdgeType>(null, session);
@@ -191,10 +193,18 @@ namespace VelocityGraph
     /// <returns>the edge referenced by the provided identifier or null when no such edge exists</returns>
     public IEdge GetEdge(object id)
     {
-      EdgeType et = edgeType[0];
-      EdgeTypeId edgeId = (EdgeTypeId)id;
-      Edge edge = et.GetEdge(this, edgeId);
-      return edge;
+      if (id == null)
+        throw new ArgumentException("id may not be null, it should be a UInt64");
+      if (id is UInt64)
+      {
+        UInt64 fullId = (UInt64)id;
+        EdgeTypeId edgeTypeId = (EdgeTypeId)(fullId >> 32);
+        EdgeType et = edgeType[edgeTypeId];
+        EdgeTypeId edgeId = (EdgeTypeId)fullId;
+        Edge edge = et.GetEdge(this, edgeId);
+        return edge;
+      }
+      return null;
     }
 
     /// <summary>
@@ -204,11 +214,8 @@ namespace VelocityGraph
     public IEnumerable<IEdge> GetEdges()
     {
       foreach (EdgeType et in edgeType)
-      {
-        if (et != null)
-          foreach (IEdge edge in et.GetEdges(this))
-            yield return edge;
-      }
+        foreach (IEdge edge in et.GetEdges(this))
+          yield return edge;
     }
 
     /// <summary>
@@ -281,9 +288,9 @@ namespace VelocityGraph
       VertexType aType;
       if (stringToVertexType.TryGetValue(name, out aType) == false)
       {
-        int pos = nodeOrEdgeTypeCt;
+        int pos = vertexTypeCt;
         Update();
-        Array.Resize(ref vertexType, (int)++nodeOrEdgeTypeCt);
+        Array.Resize(ref vertexType, (int)++vertexTypeCt);
         aType = new VertexType(pos, name, Session);
         vertexType[pos] = aType;
         stringToVertexType.Add(name, aType);
@@ -303,10 +310,10 @@ namespace VelocityGraph
       EdgeType aType;
       if (stringToEdgeType.TryGetValue(name, out aType) == false)
       {
-        int pos = nodeOrEdgeTypeCt;
+        int pos = edgeTypeCt;
         Update();
-        Array.Resize(ref edgeType, ++nodeOrEdgeTypeCt);
-        aType = new EdgeType(pos, name, null, null, directed, Session);
+        Array.Resize(ref edgeType, ++edgeTypeCt);
+        aType = new EdgeType(pos, name, null, null, directed, this);
         edgeType[pos] = aType;
         stringToEdgeType.Add(name, aType);
       }
@@ -327,10 +334,10 @@ namespace VelocityGraph
       EdgeType aType;
       if (stringToEdgeType.TryGetValue(name, out aType) == false)
       {
-        int pos = nodeOrEdgeTypeCt;
+        int pos = edgeTypeCt;
         Update();
-        Array.Resize(ref edgeType, ++nodeOrEdgeTypeCt);
-        aType = new EdgeType(pos, name, tailType, headType, directed, Session);
+        Array.Resize(ref edgeType, ++edgeTypeCt);
+        aType = new EdgeType(pos, name, tailType, headType, directed, this);
         edgeType[pos] = aType;
         stringToEdgeType.Add(name, aType);
       }
@@ -585,10 +592,10 @@ namespace VelocityGraph
     /// </summary>
     /// <returns>an iterable reference to all vertices in the graph</returns>
     public IEnumerable<IVertex> GetVertices()
-    {      
+    {
       foreach (VertexType vt in vertexType)
-          foreach (IVertex vertex in vt.GetVertices(this))
-            yield return vertex;
+        foreach (IVertex vertex in vt.GetVertices(this))
+          yield return vertex;
     }
 
     /// <summary>

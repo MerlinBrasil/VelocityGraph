@@ -17,25 +17,27 @@ namespace VelocityGraph
 {
   public class EdgeType : OptimizedPersistable, IComparable<EdgeType>, IEqualityComparer<EdgeType>
   {
+    internal Graph graph;
     string typeName;
     TypeId typeId;
-    BTreeMap<EdgeId, VertexId[]> edges;
+    internal BTreeMap<EdgeId, VertexId[]> edges;
     BTreeMap<string, PropertyType> stringToPropertyType;
     bool directed;
     ElementId edgeCt;
     VertexType headType;
     VertexType tailType;
 
-    public EdgeType(TypeId aTypeId, string aTypeName, VertexType tailType, VertexType headType, bool directed, SessionBase session)
+    public EdgeType(TypeId aTypeId, string aTypeName, VertexType tailType, VertexType headType, bool directed, Graph graph)
     {
+      this.graph = graph;
       this.directed = directed;
       //   if (directed == false)
       //     edgeHeadToTail = new Dictionary<long, long>();
       //   edgeTailToHead = new Dictionary<long, long>();
       typeId = aTypeId;
       typeName = aTypeName;
-      edges = new BTreeMap<EdgeId, VertexId[]>(null, session);
-      stringToPropertyType = new BTreeMap<string, PropertyType>(null, session);
+      edges = new BTreeMap<EdgeId, VertexId[]>(null, graph.Session);
+      stringToPropertyType = new BTreeMap<string, PropertyType>(null, graph.Session);
       edgeCt = 0;
       this.tailType = tailType;
       this.headType = headType;
@@ -61,6 +63,14 @@ namespace VelocityGraph
       return Compare(x, y) == 0;
     }
 
+    public bool Directed
+    {
+      get
+      {
+        return directed;
+      }
+    }
+
     public Edge GetEdge(Graph g, EdgeId edgeId)
     {
       VertexId[] headTail;
@@ -84,16 +94,19 @@ namespace VelocityGraph
       throw new EdgeDoesNotExistException();
     }
 
-    public IEnumerable<Edge> GetEdges(Graph g)
+    public Edge[] GetEdges(Graph g)
     {
+      Edge[] edgeAray = new Edge[edges.Count];
+      int i = 0;
       foreach (var m in edges)
       {
         VertexType vt1 = g.vertexType[m.Value[0]];
         Vertex head = vt1.GetVertex(g, m.Value[1]);
         VertexType vt2 = g.vertexType[m.Value[2]];
-        Vertex tail = vt1.GetVertex(g, m.Value[3]);
-        yield return GetEdge(g, m.Key, head, tail);
+        Vertex tail = vt2.GetVertex(g, m.Value[3]);
+        edgeAray[i++] = GetEdge(g, m.Key, head, tail);
       }
+      return edgeAray;
     }
 
     public Edge GetEdge(Graph g, EdgeId edgeId, Vertex headVertex, Vertex tailVertex)
@@ -188,8 +201,8 @@ namespace VelocityGraph
       edges.Remove(edge.EdgeId);
       if (directed)
       {
-        tailType.RemoveTailToHeadEdge(this, edge, edge.Tail.VertexId, edge.Head.VertexId, headType);
-        headType.RemoveHeadToTailEdge(this, edge, edge.Tail.VertexId, edge.Head.VertexId, tailType);
+        edge.Tail.VertexType.RemoveTailToHeadEdge(edge);
+        edge.Head.VertexType.RemoveHeadToTailEdge(edge);
       }
     }
 

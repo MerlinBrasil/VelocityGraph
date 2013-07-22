@@ -53,10 +53,13 @@ namespace VelocityGraph
       return id.GetHashCode();
     }
 
-    public object GetId()
-    {
-      return id;
-    }
+    /// <summary>
+    /// An identifier that is unique to its inheriting class.
+    /// All vertices of a graph must have unique identifiers.
+    /// All edges of a graph must have unique identifiers.
+    /// </summary>
+    /// <returns>the identifier of the element</returns>
+    public abstract object GetId();
 
     public override bool Equals(object obj)
     {
