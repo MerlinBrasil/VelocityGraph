@@ -89,12 +89,12 @@ namespace VelocityGraph
       Features.IsRdfModel = false;
       Features.IsWrapper = false;
 
-      Features.SupportsIndices = true;
-      Features.SupportsKeyIndices = true;
-      Features.SupportsVertexKeyIndex = true;
-      Features.SupportsEdgeKeyIndex = true;
-      Features.SupportsVertexIndex = true;
-      Features.SupportsEdgeIndex = true;
+      Features.SupportsIndices = false;
+      Features.SupportsKeyIndices = false;
+      Features.SupportsVertexKeyIndex = false;
+      Features.SupportsEdgeKeyIndex = false;
+      Features.SupportsVertexIndex = false;
+      Features.SupportsEdgeIndex = false;
       Features.SupportsTransactions = true;
       Features.SupportsVertexIteration = true;
       Features.SupportsEdgeIteration = true;
@@ -147,7 +147,10 @@ namespace VelocityGraph
       if (label != null && label.Length > 0)
       {
         EdgeTypeId etId = FindEdgeType(label);
-        et = edgeType[etId];
+        if (etId < 0)
+          et = NewEdgeType(label, true);
+        else
+          et = edgeType[etId];
       }
       else
         et = edgeType[0];
@@ -171,9 +174,12 @@ namespace VelocityGraph
     public virtual IVertex AddVertex(object id)
     {
       VertexType vt = vertexType[0];
-      Vertex v = vt.GetVertex(this, (VertexTypeId)id);
-      if (v != null)
-        throw new ArgumentException(string.Format("Vertex with id already exists: {0}", id));
+      if (id != null)
+      {
+        Vertex v = vt.GetVertex(this, (VertexTypeId)id);
+        if (v != null)
+          throw new ArgumentException(string.Format("Vertex with id already exists: {0}", id));
+      }
       return NewVertex(vt);
     }
 
@@ -197,13 +203,12 @@ namespace VelocityGraph
     /// <returns>an iterable reference to all edges in the graph</returns>
     public IEnumerable<IEdge> GetEdges()
     {
-      List<IEnumerable<IEdge>> enums = new List<IEnumerable<IEdge>>();
-      MultiIterable<IEdge> multi = new MultiIterable<IEdge>(enums);
       foreach (EdgeType et in edgeType)
       {
-        enums.Add(et.GetEdges(this));
+        if (et != null)
+          foreach (IEdge edge in et.GetEdges(this))
+            yield return edge;
       }
-      return multi;
     }
 
     /// <summary>
@@ -215,13 +220,17 @@ namespace VelocityGraph
     public virtual IEnumerable<IEdge> GetEdges(string key, object value)
     {
       List<IEnumerable<IEdge>> enums = new List<IEnumerable<IEdge>>();
-      MultiIterable<IEdge> multi = new MultiIterable<IEdge>(enums);
       foreach (EdgeType et in edgeType)
       {
         PropertyType pt = et.FindProperty(key);
         enums.Add(pt.GetPropertyEdges(value, this));
       }
-      return multi;
+      if (enums.Count > 0)
+      {
+        MultiIterable<IEdge> multi = new MultiIterable<IEdge>(enums);
+        return multi;
+      }
+      return new IEdge[0];
     }
 
     public virtual Features GetFeatures()
@@ -576,15 +585,10 @@ namespace VelocityGraph
     /// </summary>
     /// <returns>an iterable reference to all vertices in the graph</returns>
     public IEnumerable<IVertex> GetVertices()
-    {
-      List<IEnumerable<IVertex>> enums = new List<IEnumerable<IVertex>>();
-      MultiIterable<IVertex> multi = new MultiIterable<IVertex>(enums);
+    {      
       foreach (VertexType vt in vertexType)
-      {
-        foreach (EdgeType et in vt.EdgeTypes)
-          enums.Add(vt.GetVertices(this, et, Direction.Both));
-      }
-      return multi;
+          foreach (IVertex vertex in vt.GetVertices(this))
+            yield return vertex;
     }
 
     /// <summary>

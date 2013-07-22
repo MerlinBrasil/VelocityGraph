@@ -124,27 +124,39 @@ namespace VelocityGraph
     IEnumerable<IEdge> GetInEdges(params string[] labels)
     {
       List<IEnumerable<IEdge>> enums = new List<IEnumerable<IEdge>>();
-      MultiIterable<IEdge> multi = new MultiIterable<IEdge>(enums);
+      if (labels.Length == 0)
+        return vertexType.GetEdges(graph, this, Direction.In);
       foreach (string label in labels)
       {
         EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
         EdgeType edgeType = graph.edgeType[edgeTypeId];
-        enums.Add(vertexType.GetEdges(graph, edgeType, Direction.In));
+        enums.Add(vertexType.GetEdges(graph, edgeType, this, Direction.In));
       }
-      return multi;
+      if (enums.Count > 0)
+      {
+        MultiIterable<IEdge> multi = new MultiIterable<IEdge>(enums);
+        return multi;
+      }
+      return new IEdge[0];   
     }
 
     IEnumerable<IEdge> GetOutEdges(params string[] labels)
     {
-      List<IEnumerable<IEdge>> enums = new List<IEnumerable<IEdge>>();
-      MultiIterable<IEdge> multi = new MultiIterable<IEdge>(enums);
+      List<IEnumerable<IEdge>> enums = new List<IEnumerable<IEdge>>();  
+      if (labels.Length == 0)
+        return vertexType.GetEdges(graph, this, Direction.Out);
       foreach (string label in labels)
       {
         EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
         EdgeType edgeType = graph.edgeType[edgeTypeId];
-        enums.Add(vertexType.GetEdges(graph, edgeType, Direction.Out));
+        enums.Add(vertexType.GetEdges(graph, edgeType, this, Direction.Out));
       }
-      return multi;
+      if (enums.Count > 0)
+      {
+        MultiIterable<IEdge> multi = new MultiIterable<IEdge>(enums);
+        return multi;
+      }
+      return new IEdge[0];   
     }
 
     /// <summary>

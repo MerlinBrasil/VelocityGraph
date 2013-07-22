@@ -68,12 +68,18 @@ namespace VelocityGraph
       {
         if (headType != null)
         {
-          Vertex head = headType.GetVertex(g, headTail[0]);
-          Vertex tail = tailType.GetVertex(g, headTail[1]);
+          Vertex head = headType.GetVertex(g, headTail[1]);
+          Vertex tail = tailType.GetVertex(g, headTail[3]);
           return new Edge(g, this, edgeId, head, tail);
         }
         else
-          throw new UnexpectedException("Don't no head and tail of edge");
+        {
+          VertexType vt = g.vertexType[headTail[0]];
+          Vertex head = vt.GetVertex(g, headTail[1]);
+          vt = g.vertexType[headTail[2]];
+          Vertex tail = vt.GetVertex(g, headTail[3]);
+          return new Edge(g, this, edgeId, head, tail);
+        }
       }
       throw new EdgeDoesNotExistException();
     }
@@ -82,7 +88,11 @@ namespace VelocityGraph
     {
       foreach (var m in edges)
       {
-        yield return GetEdge(g, m.Key);
+        VertexType vt1 = g.vertexType[m.Value[0]];
+        Vertex head = vt1.GetVertex(g, m.Value[1]);
+        VertexType vt2 = g.vertexType[m.Value[2]];
+        Vertex tail = vt1.GetVertex(g, m.Value[3]);
+        yield return GetEdge(g, m.Key, head, tail);
       }
     }
 
@@ -162,11 +172,13 @@ namespace VelocityGraph
     public Edge NewEdge(Graph g, Vertex tail, Vertex head, SessionBase session)
     {
       Update();
-      edges.Add(edgeCt, new VertexId[] { head.VertexId, tail.VertexId });
+      edges.Add(edgeCt, new ElementId[] { head.VertexType.TypeId, head.VertexId, tail.VertexType.TypeId, tail.VertexId });
       Edge edge = new Edge(g, this, edgeCt++, head, tail);
-      tail.VertexType.NewTailToHeadEdge(this, edge, tail.VertexId, head.VertexId, head.VertexType, session);
-      if (directed == false)
-        head.VertexType.NewHeadToTailEdge(this, edge, tail.VertexId, head.VertexId, tail.VertexType, session);
+      if (directed)
+      {       
+        tail.VertexType.NewTailToHeadEdge(this, edge, tail, head, session);
+        head.VertexType.NewHeadToTailEdge(this, edge, tail, head, session);
+      }
       return edge;
     }
 
@@ -174,9 +186,11 @@ namespace VelocityGraph
     {
       Update();
       edges.Remove(edge.EdgeId);
-      tailType.RemoveTailToHeadEdge(this, edge, edge.Tail.VertexId, edge.Head.VertexId, headType);
-      if (directed == false)
+      if (directed)
+      {
+        tailType.RemoveTailToHeadEdge(this, edge, edge.Tail.VertexId, edge.Head.VertexId, headType);
         headType.RemoveHeadToTailEdge(this, edge, edge.Tail.VertexId, edge.Head.VertexId, tailType);
+      }
     }
 
     public Edge NewEdgeX(PropertyType[] propertyType, PropertyType tailAttr, object tailV, PropertyType headAttr, object headV, SessionBase session)
