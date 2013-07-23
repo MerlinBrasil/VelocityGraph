@@ -96,7 +96,11 @@ namespace VelocityGraph
     /// <returns>the set of all string keys associated with the vertex</returns>
     public override IEnumerable<string> GetPropertyKeys()
     {
-      return vertexType.GetPropertyKeys();
+      foreach (string key in vertexType.GetPropertyKeys())
+      {
+        if (GetProperty(key) != null)
+          yield return key;
+      }
     }
 
     /// <summary>
@@ -257,6 +261,8 @@ namespace VelocityGraph
     public override void SetProperty(string key, object value)
     {
       PropertyType pt = vertexType.FindProperty(key);
+      if (pt == null)
+        pt = vertexType.graph.NewVertexProperty(vertexType, key, DataType.Object, PropertyKind.Indexed);
       vertexType.SetPropertyValue(VertexId, pt, value);
     }
 
@@ -269,6 +275,8 @@ namespace VelocityGraph
     public override void SetProperty<T>(string key, T value)
     {
       PropertyType pt = vertexType.FindProperty(key);
+      if (pt == null)
+        pt = vertexType.graph.NewVertexProperty(vertexType, key, DataType.Object, PropertyKind.Indexed);
       vertexType.SetPropertyValue(VertexId, pt, value);
     }
   }

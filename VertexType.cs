@@ -17,6 +17,7 @@ namespace VelocityGraph
 {
   public class VertexType : OptimizedPersistable
   {
+    internal Graph graph;
     string typeName;
     TypeId typeId;
     BTreeSet<VertexId> vertecis;
@@ -27,15 +28,16 @@ namespace VelocityGraph
     BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>> headToTailEdges;
     VertexId nodeCt;
 
-    internal VertexType(TypeId aTypeId, string aTypeName, SessionBase session)
+    internal VertexType(TypeId aTypeId, string aTypeName, Graph graph)
     {
+      this.graph = graph;
       typeId = (TypeId)aTypeId;
       typeName = aTypeName;
-      vertecis = new BTreeSet<VertexId>(null, session);
-      stringToPropertyType = new BTreeMap<string, PropertyType>(null, session);
-      edgeTypes = new BTreeSet<EdgeType>(null, session);
-      tailToHeadEdges = new BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>(null, session);
-      headToTailEdges = new BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>(null, session);
+      vertecis = new BTreeSet<VertexId>(null, graph.Session);
+      stringToPropertyType = new BTreeMap<string, PropertyType>(null, graph.Session);
+      edgeTypes = new BTreeSet<EdgeType>(null, graph.Session);
+      tailToHeadEdges = new BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>(null, graph.Session);
+      headToTailEdges = new BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>(null, graph.Session);
       vertexProperties = new PropertyType[0];
       nodeCt = 0;
     }
@@ -330,9 +332,6 @@ namespace VelocityGraph
             break;
           case DataType.Object:
             aType = new PropertyTypeT<object>(true, typeId, pos, name, kind, Session);
-            break;
-          case DataType.OID:
-            aType = new PropertyTypeT<long>(true, typeId, pos, name, kind, Session);
             break;
         }
         propertyType[pos] = aType;
@@ -713,15 +712,22 @@ namespace VelocityGraph
 
     public void RemoveVertex(Vertex vertex)
     {
-      vertecis.Remove(vertex.VertexId);
       BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>> innerMap;
-      BTreeSet<EdgeIdVertexId> set;
+      BTreeSet<EdgeIdVertexId> edgeVertexSet;
       foreach (var m in headToTailEdges)
+      {
+        List<Edge> edgesToRemove = new List<Edge>();
         if (m.Value.TryGetValue(this, out innerMap))
-          if (innerMap.TryGetValue(vertex.VertexId, out set))
+          if (innerMap.TryGetValue(vertex.VertexId, out edgeVertexSet))
           {
-            innerMap.Remove(vertex.VertexId);
-            set.Unpersist(Session);
+            foreach (UInt64 l in edgeVertexSet)
+            {
+              VertexId vId = (int)l;
+              Vertex vertex2 = GetVertex(graph, vId);
+              EdgeId eId = (int)(l >> 32);
+              Edge edge = m.Key.GetEdge(graph, eId, vertex2, vertex);
+              edgesToRemove.Add(edge);
+            }
           }
           else
           {
@@ -735,15 +741,52 @@ namespace VelocityGraph
                   toRemove.Add(l);
               }
               foreach (EdgeIdVertexId l in toRemove)
-                n.Value.Remove(l);
+              {
+                VertexId vId = (int)l;
+                Vertex vertex2 = GetVertex(graph, vId);
+                EdgeId eId = (int)(l >> 32);
+                Edge edge = m.Key.GetEdge(graph, eId, vertex2, vertex);
+                edgesToRemove.Add(edge);
+              }
             }
           }
+        foreach (Edge edge in edgesToRemove)
+          m.Key.RemoveEdge(edge);
+      }
+
+      foreach (var m in headToTailEdges)
+      {
+        if (m.Value.TryGetValue(this, out innerMap))
+          if (innerMap.TryGetValue(vertex.VertexId, out edgeVertexSet))
+          {
+            innerMap.Remove(vertex.VertexId);
+            edgeVertexSet.Unpersist(Session);
+          }
+          else
+          {
+            foreach (var n in innerMap)
+            {
+              List<EdgeIdVertexId> toRemove = new List<EdgeIdVertexId>();
+              foreach (EdgeIdVertexId l in n.Value)
+              {
+                int i = (int)l;
+                if (i == vertex.VertexId)
+                  toRemove.Add(l);
+              }
+              foreach (EdgeIdVertexId l in toRemove)
+              {
+                n.Value.Remove(l);
+              }
+            }
+          }
+      }
+
       foreach (var m in tailToHeadEdges)
         if (m.Value.TryGetValue(this, out innerMap))
-          if (innerMap.TryGetValue(vertex.VertexId, out set))
+          if (innerMap.TryGetValue(vertex.VertexId, out edgeVertexSet))
           {
             innerMap.Remove(vertex.VertexId);
-            set.Unpersist(Session);
+            edgeVertexSet.Unpersist(Session);
           }
           else
           {
@@ -757,9 +800,12 @@ namespace VelocityGraph
                   toRemove.Add(l);
               }
               foreach (EdgeIdVertexId l in toRemove)
+              {
                 n.Value.Remove(l);
+              }
             }
           }
+      vertecis.Remove(vertex.VertexId);
     }
 
     public object GetPropertyValue(VertexId vertexId, PropertyType propertyId)

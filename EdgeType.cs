@@ -172,8 +172,52 @@ namespace VelocityGraph
           case DataType.Object:
             aType = new PropertyTypeT<object>(false,this.TypeId,pos, name, kind, Session);
             break;
-          case DataType.OID:
+        }
+        propertyType[pos] = aType;
+        stringToPropertyType.Add(name, aType);
+      }
+      return aType;
+    }
+ 
+    /// <summary>
+    /// Creates a new Property. 
+    /// </summary>
+    /// <param name="name">Unique name for the new Property.</param>
+    /// <param name="dt">Data type for the new Property.</param>
+    /// <param name="kind">Property kind.</param>
+    /// <returns>a Property.</returns>
+    public PropertyType NewProperty(ref PropertyType[] propertyType, string name, object value, PropertyKind kind)
+    {
+      PropertyType aType;
+      if (stringToPropertyType.TryGetValue(name, out aType) == false)
+      {
+        int pos = propertyType.Length;
+        Array.Resize(ref propertyType, pos + 1);
+        switch (Type.GetTypeCode(value.GetType()))
+        {
+          case TypeCode.Boolean:
+            aType = new PropertyTypeT<bool>(false, this.TypeId, pos, name, kind, Session);
+            break;
+          case TypeCode.Int32:
+            aType = new PropertyTypeT<int>(false, this.TypeId,pos, name, kind, Session);
+            break;
+          case TypeCode.Int64:
             aType = new PropertyTypeT<long>(false, this.TypeId,pos, name, kind, Session);
+            break;
+          case TypeCode.Single:
+            aType = new PropertyTypeT<Single>(false, this.TypeId,pos, name, kind, Session);
+            break;          
+          case TypeCode.Double:
+            aType = new PropertyTypeT<double>(false, this.TypeId,pos, name, kind, Session);
+            break;
+          case TypeCode.DateTime:
+            aType = new PropertyTypeT<DateTime>(false, this.TypeId,pos, name, kind, Session);
+            break;
+          case TypeCode.String:
+            aType = new PropertyTypeT<string>(false, this.TypeId,pos, name, kind, Session);
+            break;
+          case TypeCode.Object:
+            aType = new PropertyTypeT<object>(false,this.TypeId,pos, name, kind, Session);
             break;
         }
         propertyType[pos] = aType;

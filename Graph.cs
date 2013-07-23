@@ -36,10 +36,10 @@ namespace VelocityGraph
     Integer,
     Long,
     Double,
+    Single,
     DateTime,
     String,
-    Object,
-    OID
+    Object
   }
 
   public enum Order
@@ -291,7 +291,7 @@ namespace VelocityGraph
         int pos = vertexTypeCt;
         Update();
         Array.Resize(ref vertexType, (int)++vertexTypeCt);
-        aType = new VertexType(pos, name, Session);
+        aType = new VertexType(pos, name, this);
         vertexType[pos] = aType;
         stringToVertexType.Add(name, aType);
       }
@@ -606,16 +606,12 @@ namespace VelocityGraph
     /// <returns>an iterable of vertices with provided key and value</returns>
     IEnumerable<IVertex> IGraph.GetVertices(string key, object value)
     {
-      {
-        List<IEnumerable<IVertex>> enums = new List<IEnumerable<IVertex>>();
-        MultiIterable<IVertex> multi = new MultiIterable<IVertex>(enums);
         foreach (VertexType vt in vertexType)
         {
           PropertyType pt = vt.FindProperty(key);
-          enums.Add(pt.GetPropertyVertices(value, this));
+          foreach (Vertex vertex in pt.GetPropertyVertices(value, this))
+            yield return vertex;
         }
-        return multi;
-      }
     }
 
     public HashSet<Edge> Edges(EdgeTypeId etype, Vertex tail, Vertex head)

@@ -193,9 +193,7 @@ namespace VelocityGraph
         throw new ArgumentException("Property key may not be null or be an empty string");
       PropertyType pt = edgeType.FindProperty(key);
       if (pt == null)
-      {
-        pt = edgeType.graph.NewEdgeProperty(edgeType, key, DataType.Object, PropertyKind.Indexed);
-      }
+        pt = edgeType.NewProperty(ref edgeType.graph.propertyType, key, value, PropertyKind.Indexed);
       edgeType.SetPropertyValue(EdgeId, pt, value);
     }
 
