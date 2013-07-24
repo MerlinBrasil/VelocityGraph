@@ -16,14 +16,14 @@ namespace VelocityGraph
 {
   public class PropertyTypeT<T> : PropertyType
   {
-    Dictionary<ElementId, T> propertyValue;
+    BTreeMap<ElementId, T> propertyValue;
     BTreeMap<T, ElementId[]> valueIndex;
     BTreeMap<T, ElementId> valueIndexUnique;
 
     internal PropertyTypeT(bool isVertexProp, TypeId typeId, PropertyId propertyId, string name, PropertyKind kind, SessionBase session)
       : base(isVertexProp, typeId, propertyId, name)
     {
-      propertyValue = new Dictionary<ElementId, T>();
+      propertyValue = new BTreeMap<ElementId, T>(null, session);
       switch (kind)
       {
         case PropertyKind.Indexed:
@@ -153,8 +153,13 @@ namespace VelocityGraph
       return edgeType.GetEdge(g, elementId);
     }
 
+   // public override IEnumerable<Edge> GetPropertyEdgesV<V>(V value, Graph g)
+   // {
+   //   return GetPropertyEdges(value, g);
+   // }
+
     public IEnumerable<Edge> GetPropertyEdges(T value, Graph g)
-    {
+   {
       EdgeId elementId = -1;
       EdgeType edgeType = g.edgeType[TypeId];
       if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
@@ -170,7 +175,7 @@ namespace VelocityGraph
 
     public override IEnumerable<Edge> GetPropertyEdges(object value, Graph g)
     {
-      if (IsVertexProperty == false)
+      if (IsVertexProperty)
         throw new InvalidTypeIdException();
       return GetPropertyEdges((T)value, g);
     }

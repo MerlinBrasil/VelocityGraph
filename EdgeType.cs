@@ -183,10 +183,10 @@ namespace VelocityGraph
     /// Creates a new Property. 
     /// </summary>
     /// <param name="name">Unique name for the new Property.</param>
-    /// <param name="dt">Data type for the new Property.</param>
+    /// <param name="value">Object guiding the type of the property.</param>
     /// <param name="kind">Property kind.</param>
     /// <returns>a Property.</returns>
-    public PropertyType NewProperty(ref PropertyType[] propertyType, string name, object value, PropertyKind kind)
+    internal PropertyType NewProperty(ref PropertyType[] propertyType, string name, object value, PropertyKind kind)
     {
       PropertyType aType;
       if (stringToPropertyType.TryGetValue(name, out aType) == false)
@@ -248,6 +248,8 @@ namespace VelocityGraph
         edge.Tail.VertexType.RemoveTailToHeadEdge(edge);
         edge.Head.VertexType.RemoveHeadToTailEdge(edge);
       }
+      foreach (string key in GetPropertyKeys())
+        edge.RemoveProperty(key);
     }
 
     public Edge NewEdgeX(PropertyType[] propertyType, PropertyType tailAttr, object tailV, PropertyType headAttr, object headV, SessionBase session)

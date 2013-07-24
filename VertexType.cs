@@ -636,12 +636,15 @@ namespace VelocityGraph
       return numberOfEdges;
     }
 
-    public IEnumerable<IVertex> GetVertices(Graph g)
+    public Vertex[] GetVertices(Graph g)
     {
+      Vertex[] vArray = new Vertex[vertecis.Count];
+      int i = 0;
       foreach (VertexId vId in vertecis)
       {
-        yield return GetVertex(g, vId);
+        vArray[i++] = GetVertex(g, vId);
       }
+      return vArray;
     }
 
     public IEnumerable<IVertex> GetVertices(Graph g, EdgeType etype, Direction dir)
@@ -805,6 +808,8 @@ namespace VelocityGraph
               }
             }
           }
+      foreach (string key in GetPropertyKeys())
+        vertex.RemoveProperty(key);
       vertecis.Remove(vertex.VertexId);
     }
 

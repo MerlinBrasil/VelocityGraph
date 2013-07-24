@@ -133,30 +133,40 @@ namespace VelocityGraph
     /// <returns>an IEnumerable of incident edges</returns>
     public IEnumerable<IEdge> GetEdges(Direction direction, params string[] labels)
     {
-      if (direction == Direction.Out)
-        return GetOutEdges(labels);
-      if (direction == Direction.In)
-        return GetInEdges(labels);
-      return new MultiIterable<IEdge>(new List<IEnumerable<IEdge>> { GetInEdges(labels), GetOutEdges(labels) });
+      switch (direction)
+      {
+        case Direction.Out:
+          foreach (IEdge edge in GetOutEdges(labels))
+            yield return edge;
+          break;
+        case Direction.In:
+            foreach (IEdge edge in GetInEdges(labels))
+              yield return edge;
+          break;
+        default:
+            foreach (IEdge edge in GetInEdges(labels))
+              yield return edge;
+            foreach (IEdge edge in GetOutEdges(labels))
+              yield return edge;
+          break;
+       };
     }
 
     IEnumerable<IEdge> GetInEdges(params string[] labels)
     {
-      List<IEnumerable<IEdge>> enums = new List<IEnumerable<IEdge>>();
       if (labels.Length == 0)
-        return vertexType.GetEdges(graph, this, Direction.In);
-      foreach (string label in labels)
+        foreach (IEdge edge in vertexType.GetEdges(graph, this, Direction.In))
+          yield return edge;
+      else
       {
-        EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
-        EdgeType edgeType = graph.edgeType[edgeTypeId];
-        enums.Add(vertexType.GetEdges(graph, edgeType, this, Direction.In));
+        foreach (string label in labels)
+        {
+          EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
+          EdgeType edgeType = graph.edgeType[edgeTypeId];
+          foreach (IEdge edge in vertexType.GetEdges(graph, edgeType, this, Direction.In))
+            yield return edge;
+        }
       }
-      if (enums.Count > 0)
-      {
-        MultiIterable<IEdge> multi = new MultiIterable<IEdge>(enums);
-        return multi;
-      }
-      return new IEdge[0];
     }
 
     IEnumerable<IEdge> GetOutEdges(params string[] labels)
@@ -187,15 +197,13 @@ namespace VelocityGraph
     /// <returns>an IEnumerable of adjacent vertices</returns>
     public IEnumerable<IVertex> GetVertices(Direction direction, params string[] labels)
     {
-      List<IEnumerable<IVertex>> enums = new List<IEnumerable<IVertex>>();
-      MultiIterable<IVertex> multi = new MultiIterable<IVertex>(enums);
       foreach (string label in labels)
       {
         EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
         EdgeType edgeType = graph.edgeType[edgeTypeId];
-        enums.Add(vertexType.GetVertices(graph, edgeType, direction));
+        foreach (IVertex vertex in vertexType.GetVertices(graph, edgeType, direction))
+          yield return vertex;
       }
-      return multi;
     }
 
     public VertexId VertexId

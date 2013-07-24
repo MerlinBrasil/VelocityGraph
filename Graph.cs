@@ -124,12 +124,15 @@ namespace VelocityGraph
     public static Graph Open(SessionBase session, int graphInstance = 0)
     {
       UInt32 dbNum = session.DatabaseNumberOf(typeof(Graph));
-      Database db = session.OpenDatabase(dbNum);
-      int ct = 0;
-      foreach (Graph g in db.AllObjects<Graph>())
+      Database db = session.OpenDatabase(dbNum, true, false);
+      if (db != null)
       {
-        if (ct == graphInstance)
-          return g;
+        int ct = 0;
+        foreach (Graph g in db.AllObjects<Graph>())
+        {
+          if (ct == graphInstance)
+            return g;
+        }
       }
       return null;
     }
@@ -154,15 +157,14 @@ namespace VelocityGraph
         else
           et = edgeType[etId];
       }
+      else if (id is UInt64)
+      {
+        UInt64 fullId = (UInt64)id;
+        EdgeTypeId edgeTypeId = (EdgeTypeId)(fullId >> 32);
+        et = edgeType[edgeTypeId];
+      }
       else
         et = edgeType[0];
-      if (id is EdgeTypeId)
-      {
-        EdgeTypeId edgeId = (EdgeTypeId)id;
-        Edge edge = et.GetEdge(this, edgeId);
-        if (edge != null)
-          throw new ArgumentException(string.Format("Edge with id already exists: {0}", id));
-      }
       Vertex tail = outVertex as Vertex;
       Vertex head = inVertex as Vertex;
       return et.NewEdge(this, tail, head, Session);
@@ -175,13 +177,15 @@ namespace VelocityGraph
     /// <returns>the newly created vertex</returns>
     public virtual IVertex AddVertex(object id)
     {
-      VertexType vt = vertexType[0];
-      if (id != null)
+      VertexType vt;
+      if (id != null && id is UInt64)
       {
-        Vertex v = vt.GetVertex(this, (VertexTypeId)id);
-        if (v != null)
-          throw new ArgumentException(string.Format("Vertex with id already exists: {0}", id));
+        UInt64 fullId = (UInt64)id;
+        VertexTypeId vertexTypeId = (VertexTypeId)(fullId >> 32);
+        vt = vertexType[vertexTypeId];
       }
+      else
+        vt = vertexType[0];
       return NewVertex(vt);
     }
 
@@ -226,18 +230,34 @@ namespace VelocityGraph
     /// <returns>an iterable of edges with provided key and value</returns>
     public virtual IEnumerable<IEdge> GetEdges(string key, object value)
     {
-      List<IEnumerable<IEdge>> enums = new List<IEnumerable<IEdge>>();
+      switch (Type.GetTypeCode(value.GetType()))
+      {
+        case TypeCode.Boolean:
+          return GetEdges<bool>(key, (bool)value);
+        case TypeCode.Single:
+          return GetEdges<float>(key, (float)value);
+        case TypeCode.Double:
+          return GetEdges<double>(key, (double)value);
+        default:
+          return GetEdges<object>(key, value);
+      };
+    }
+
+    /// <summary>
+    /// Return an iterable to all the edges in the graph that have a particular key/value property.
+    /// </summary>
+    /// <param name="key">the key of the edge</param>
+    /// <param name="value">the value of the edge</param>
+    /// <returns>an iterable of edges with provided key and value</returns>
+    public virtual IEnumerable<IEdge> GetEdges<T>(string key, T value)
+    {
       foreach (EdgeType et in edgeType)
       {
         PropertyType pt = et.FindProperty(key);
-        enums.Add(pt.GetPropertyEdges(value, this));
+        if (pt != null)
+          foreach (IEdge edge in pt.GetPropertyEdges(value, this))
+            yield return edge;
       }
-      if (enums.Count > 0)
-      {
-        MultiIterable<IEdge> multi = new MultiIterable<IEdge>(enums);
-        return multi;
-      }
-      return new IEdge[0];
     }
 
     public virtual Features GetFeatures()
@@ -252,6 +272,18 @@ namespace VelocityGraph
         if (session != null)
           return session;
         return base.Session;
+      }
+    }
+
+    public void Clear()
+    {
+      foreach (Edge edge in GetEdges())
+      {
+        edge.Remove();
+      }
+      foreach (Vertex vertex in GetVertices())
+      {
+        vertex.Remove();
       }
     }
 
@@ -578,13 +610,22 @@ namespace VelocityGraph
     /// Return the vertex referenced by the provided object identifier.
     /// If no vertex is referenced by that identifier, then return null.
     /// </summary>
-    /// <param name="id">the identifier of the vertex to retrieved from the graph</param>
+    /// <param name="id">the identifier of the vertex to retrieved from the graph, must be a UInt64</param>
     /// <returns>the vertex referenced by the provided identifier or null when no such vertex exists</returns>
     public IVertex GetVertex(object id)
     {
-      VertexType vt = vertexType[0];
-      Vertex v = vt.GetVertex(this, (VertexTypeId)id);
-      return v;
+      if (id == null)
+        throw new ArgumentException("id may not be null, it should be a UInt64");
+      if (id is UInt64)
+      {
+        UInt64 fullId = (UInt64)id;
+        VertexTypeId vertexTypeId = (VertexTypeId)(fullId >> 32);
+        VertexType vt = vertexType[vertexTypeId];
+        VertexTypeId vertexId = (VertexTypeId)fullId;
+        Vertex vertex = vt.GetVertex(this, vertexId);
+        return vertex;
+      }
+      return null; 
     }
 
     /// <summary>
