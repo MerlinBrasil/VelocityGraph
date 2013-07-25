@@ -31,7 +31,11 @@ namespace VelocityGraph
     public IEdge AddEdge(string label, IVertex inVertex)
     {
       EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
-      EdgeType edgeType = graph.edgeType[edgeTypeId];
+      EdgeType edgeType;
+      if (edgeTypeId >= 0)
+        edgeType = graph.edgeType[edgeTypeId];
+      else
+        edgeType = graph.NewEdgeType(label, true);
       return graph.NewEdge(edgeType, this, inVertex as Vertex);
     }
 
@@ -76,18 +80,6 @@ namespace VelocityGraph
     {
       PropertyType pt = vertexType.FindProperty(key);
       return vertexType.GetPropertyValue(id, pt);
-    }
-
-    /// <summary>
-    /// Return the object value associated with the provided string key.
-    /// If no value exists for that key, return null.
-    /// </summary>
-    /// <param name="key">the key of the key/value property</param>
-    /// <returns>the object value related to the string key</returns>
-    public override T GetProperty<T>(string key)
-    {
-      PropertyType pt = vertexType.FindProperty(key);
-      return (T)vertexType.GetPropertyValue(id, pt);
     }
 
     /// <summary>
@@ -197,12 +189,24 @@ namespace VelocityGraph
     /// <returns>an IEnumerable of adjacent vertices</returns>
     public IEnumerable<IVertex> GetVertices(Direction direction, params string[] labels)
     {
-      foreach (string label in labels)
+      if (labels.Length == 0)
       {
-        EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
-        EdgeType edgeType = graph.edgeType[edgeTypeId];
-        foreach (IVertex vertex in vertexType.GetVertices(graph, edgeType, direction))
-          yield return vertex;
+        HashSet<EdgeType> edgeTypes = new HashSet<EdgeType>();
+        foreach (Edge edge in GetEdges(direction, labels))
+          edgeTypes.Add(edge.EdgeType);
+        foreach (EdgeType edgeType in edgeTypes)
+          foreach (IVertex vertex in vertexType.GetVertices(graph, edgeType, this, direction))
+            yield return vertex;
+      }
+      else
+      {
+        foreach (string label in labels)
+        {
+          EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
+          EdgeType edgeType = graph.edgeType[edgeTypeId];
+          foreach (IVertex vertex in vertexType.GetVertices(graph, edgeType, this, direction))
+            yield return vertex;
+        }
       }
     }
 
@@ -252,6 +256,8 @@ namespace VelocityGraph
     public override object RemoveProperty(string key)
     {
       PropertyType pt = vertexType.FindProperty(key);
+      if (pt == null)
+        return null;
       return pt.RemovePropertyValue(id);
     }
 
@@ -268,6 +274,10 @@ namespace VelocityGraph
     /// <param name="value">the object value o the property</param>
     public override void SetProperty(string key, object value)
     {
+      if (key == null || key.Length == 0)
+        throw new ArgumentException("Property key may not be null or be an empty string");
+      if (value == null)
+        throw new ArgumentException("Property value may not be null");
       PropertyType pt = vertexType.FindProperty(key);
       if (pt == null)
         pt = vertexType.graph.NewVertexProperty(vertexType, key, DataType.Object, PropertyKind.Indexed);

@@ -26,7 +26,7 @@ namespace VelocityGraph
     BTreeSet<EdgeType> edgeTypes;
     BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>> tailToHeadEdges;
     BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>> headToTailEdges;
-    VertexId nodeCt;
+    VertexId vertexCt;
 
     internal VertexType(TypeId aTypeId, string aTypeName, Graph graph)
     {
@@ -39,7 +39,7 @@ namespace VelocityGraph
       tailToHeadEdges = new BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>(null, graph.Session);
       headToTailEdges = new BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>(null, graph.Session);
       vertexProperties = new PropertyType[0];
-      nodeCt = 0;
+      vertexCt = 0;
     }
 
     public BTreeSet<EdgeType> EdgeTypes
@@ -149,8 +149,8 @@ namespace VelocityGraph
     public Vertex NewVertex(Graph g)
     {
       Update();
-      vertecis.Add(nodeCt);
-      return new Vertex(g, this, nodeCt++);
+      vertecis.Add(++vertexCt);
+      return new Vertex(g, this, vertexCt);
     }
 
     public Dictionary<Vertex, HashSet<Edge>> Traverse(Graph g, Vertex vertex1, EdgeType etype, Direction dir)
@@ -647,68 +647,69 @@ namespace VelocityGraph
       return vArray;
     }
 
-    public IEnumerable<IVertex> GetVertices(Graph g, EdgeType etype, Direction dir)
+    public IEnumerable<IVertex> GetVertices(Graph g, EdgeType etype, Vertex vertex1, Direction dir)
     {
       BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
+      BTreeSet<EdgeIdVertexId> set;
       switch (dir)
       {
         case Direction.Out:
           if (tailToHeadEdges.TryGetValue(etype, out map))
             foreach (var p1 in map)
-              foreach (var p2 in p1.Value)
+            {
+              if (p1.Value.TryGetValue(vertex1.VertexId, out set))
               {
-                Vertex vertex1 = GetVertex(g, p2.Key);
-                yield return vertex1;
-                /*foreach (long l in p2.Value)
+                foreach (long l in set)
                 {
                   VertexId vId = (int)l;
                   Vertex vertex2 = GetVertex(g, vId);
                   yield return vertex2;
-                }*/
+                }
               }
+            }
           break;
         case Direction.In:
           if (headToTailEdges.TryGetValue(etype, out map))
             foreach (var p1 in map)
-              foreach (var p2 in p1.Value)
+            {
+              if (p1.Value.TryGetValue(vertex1.VertexId, out set))
               {
-                Vertex vertex1 = GetVertex(g, p2.Key);
-                yield return vertex1;
-                /*foreach (long l in p2.Value)
+                foreach (long l in set)
                 {
                   VertexId vId = (int)l;
                   Vertex vertex2 = GetVertex(g, vId);
                   yield return vertex2;
-                }*/
+                }
               }
+            }
           break;
         case Direction.Both:
           if (tailToHeadEdges.TryGetValue(etype, out map))
             foreach (var p1 in map)
-              foreach (var p2 in p1.Value)
+            {
+              if (p1.Value.TryGetValue(vertex1.VertexId, out set))
               {
-                Vertex vertex1 = GetVertex(g, p2.Key);
-                yield return vertex1;
-                /*foreach (long l in p2.Value)
+                foreach (long l in set)
                 {
                   VertexId vId = (int)l;
                   Vertex vertex2 = GetVertex(g, vId);
                   yield return vertex2;
-                }*/
-              };
+                }
+              }
+            }
           if (headToTailEdges.TryGetValue(etype, out map))
             foreach (var p1 in map)
-              foreach (var p2 in p1.Value)
+            {
+              if (p1.Value.TryGetValue(vertex1.VertexId, out set))
               {
-                Vertex vertex1 = GetVertex(g, p2.Key);
-                yield return vertex1;
-                /*foreach (long l in p2.Value)
+                foreach (long l in set)
                 {
                   VertexId vId = (int)l;
                   Vertex vertex2 = GetVertex(g, vId);
                   yield return vertex2;
-                }*/
+                }
               }
+            }
           break;
       }
     }

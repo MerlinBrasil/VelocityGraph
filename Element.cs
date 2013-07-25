@@ -23,7 +23,6 @@ namespace VelocityGraph
     public abstract IEnumerable<string> GetPropertyKeys();
 
     public abstract object GetProperty(string key);
-    public abstract T GetProperty<T>(string key);
 
     /// <summary>
     /// Assign a key/value property to the element.

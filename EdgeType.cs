@@ -229,8 +229,8 @@ namespace VelocityGraph
     public Edge NewEdge(Graph g, Vertex tail, Vertex head, SessionBase session)
     {
       Update();
-      edges.Add(edgeCt, new ElementId[] { head.VertexType.TypeId, head.VertexId, tail.VertexType.TypeId, tail.VertexId });
-      Edge edge = new Edge(g, this, edgeCt++, head, tail);
+      edges.Add(++edgeCt, new ElementId[] { head.VertexType.TypeId, head.VertexId, tail.VertexType.TypeId, tail.VertexId });
+      Edge edge = new Edge(g, this, edgeCt, head, tail);
       if (directed)
       {       
         tail.VertexType.NewTailToHeadEdge(this, edge, tail, head, session);

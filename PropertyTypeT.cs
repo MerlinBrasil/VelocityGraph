@@ -35,39 +35,41 @@ namespace VelocityGraph
       }
     }
 
-    T GetPropertyValueT(ElementId oid)
+    bool GetPropertyValueT(ElementId oid, ref T pv)
     {
-      T pv;
       if (propertyValue.TryGetValue(oid, out pv))
-        return pv;
-      return default(T);
+        return true;
+      return false;
     }    
     
-    T RemovePropertyValueT(ElementId oid)
+    bool RemovePropertyValueT(ElementId oid, out T pv)
     {
-      T pv = propertyValue[oid];
-      propertyValue.Remove(oid);
-      if (valueIndex != null)
+      if (propertyValue.TryGetValue(oid, out pv))
       {
-        if (valueIndex.TryGetKey(pv, ref pv))
+        propertyValue.Remove(oid);
+        if (valueIndex != null)
         {
-          ElementId[] oidArray = valueIndex[pv];
-          if (oidArray.Length > 1)
+          if (valueIndex.TryGetKey(pv, ref pv))
           {
-            ElementId[] oidArrayReduced = new ElementId[oidArray.Length - 1];
-            int i = 0;
-            foreach (ElementId eId in oidArray)
-              if (eId != oid)
-                oidArrayReduced[i++] = eId;
-            valueIndex[pv] = oidArrayReduced;
+            ElementId[] oidArray = valueIndex[pv];
+            if (oidArray.Length > 1)
+            {
+              ElementId[] oidArrayReduced = new ElementId[oidArray.Length - 1];
+              int i = 0;
+              foreach (ElementId eId in oidArray)
+                if (eId != oid)
+                  oidArrayReduced[i++] = eId;
+              valueIndex[pv] = oidArrayReduced;
+            }
+            else
+              valueIndex.Remove(pv);
           }
-          else
-            valueIndex.Remove(pv);
         }
+        else if (valueIndexUnique != null)
+          valueIndexUnique.Remove(pv);
+        return true;
       }
-      else if (valueIndexUnique != null)
-        valueIndexUnique.Remove(pv);
-      return pv;
+      return false;
     }
 
     void SetPropertyValueX(ElementId element, T aValue)
@@ -189,12 +191,18 @@ namespace VelocityGraph
 
     public override object GetPropertyValue(ElementId element)
     {
-      return GetPropertyValueT(element);
+      T v = default(T);
+      if (GetPropertyValueT(element, ref v))
+        return v;
+      return null;
     }
 
     public override object RemovePropertyValue(ElementId element)
     {
-      return RemovePropertyValueT(element);
+      T pv;
+      if (RemovePropertyValueT(element, out pv))
+        return pv;
+      return null;
     }
 
     public override void SetPropertyValue(ElementId element, object value)

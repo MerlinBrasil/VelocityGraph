@@ -625,6 +625,18 @@ namespace VelocityGraph
         Vertex vertex = vt.GetVertex(this, vertexId);
         return vertex;
       }
+      if (id is string)
+      {
+        UInt64 fullId;
+        if (UInt64.TryParse(id as string, out fullId))
+        {
+          VertexTypeId vertexTypeId = (VertexTypeId)(fullId >> 32);
+          VertexType vt = vertexType[vertexTypeId];
+          VertexTypeId vertexId = (VertexTypeId)fullId;
+          Vertex vertex = vt.GetVertex(this, vertexId);
+          return vertex;
+        }
+      }
       return null; 
     }
 
