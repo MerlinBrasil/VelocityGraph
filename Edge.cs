@@ -181,7 +181,7 @@ namespace VelocityGraph
         throw new ArgumentException("Property value may not be null");
       PropertyType pt = edgeType.FindProperty(key);
       if (pt == null)
-        pt = edgeType.NewProperty(ref edgeType.graph.propertyType, key, value, PropertyKind.Indexed);
+        pt = edgeType.NewProperty(key, value, PropertyKind.Indexed);
       edgeType.SetPropertyValue(EdgeId, pt, value);
     }
 

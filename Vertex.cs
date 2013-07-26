@@ -128,17 +128,17 @@ namespace VelocityGraph
       switch (direction)
       {
         case Direction.Out:
-          foreach (IEdge edge in GetOutEdges(labels))
+          foreach (IEdge edge in GetOutEdges(labels).ToArray())
             yield return edge;
           break;
         case Direction.In:
-            foreach (IEdge edge in GetInEdges(labels))
+            foreach (IEdge edge in GetInEdges(labels).ToArray())
               yield return edge;
           break;
         default:
-            foreach (IEdge edge in GetInEdges(labels))
+            foreach (IEdge edge in GetInEdges(labels).ToArray())
               yield return edge;
-            foreach (IEdge edge in GetOutEdges(labels))
+            foreach (IEdge edge in GetOutEdges(labels).ToArray())
               yield return edge;
           break;
        };

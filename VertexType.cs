@@ -57,10 +57,10 @@ namespace VelocityGraph
       return id + (EdgeIdVertexId)vertexId;
     }
 
-    public Vertex GetVertex(Graph g, VertexId vertexId)
+    public Vertex GetVertex(VertexId vertexId)
     {
       if (vertecis.Contains(vertexId))
-        return new Vertex(g, this, vertexId);
+        return new Vertex(graph, this, vertexId);
       throw new VertexDoesNotExistException();
     }
 
@@ -73,7 +73,13 @@ namespace VelocityGraph
       {
         map = new BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>(null, session);
         innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
-        set = new BTreeSet<EdgeIdVertexId>(null, session);
+        set = new BTreeSet<EdgeIdVertexId>(null, session);        
+        if (IsPersistent)
+        {
+          Session.Persist(map);
+          Session.Persist(innerMap);
+          Session.Persist(set);
+        }
         innerMap.Add(tail.VertexId, set);
         map.Add(head.VertexType, innerMap);
         tailToHeadEdges.Add(edgeType, map);
@@ -83,12 +89,19 @@ namespace VelocityGraph
       {
         innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
         set = new BTreeSet<EdgeIdVertexId>(null, session);
+        if (IsPersistent)
+        {
+          Session.Persist(innerMap);
+          Session.Persist(set);
+        }
         innerMap.Add(tail.VertexId, set);
         map.Add(head.VertexType, innerMap);
       }
       else if (!innerMap.TryGetValue(tail.VertexId, out set))
       {
         set = new BTreeSet<EdgeIdVertexId>(null, session);
+        if (IsPersistent)
+          Session.Persist(set);
         innerMap.Add(tail.VertexId, set);
       }
       set.Add(edgeVertexId(edge, head.VertexId));
@@ -126,6 +139,12 @@ namespace VelocityGraph
         map = new BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>(null, session);
         innerMap = new BTreeMap<EdgeId, BTreeSet<EdgeIdVertexId>>(null, session);
         set = new BTreeSet<EdgeIdVertexId>(null, session);
+        if (IsPersistent)
+        {
+          Session.Persist(map);
+          Session.Persist(innerMap);
+          Session.Persist(set);
+        }
         innerMap.Add(head.VertexId, set);
         map.Add(tail.VertexType, innerMap);
         headToTailEdges.Add(edgeType, map);
@@ -135,12 +154,19 @@ namespace VelocityGraph
       {
         innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
         set = new BTreeSet<EdgeIdVertexId>(null, session);
+        if (IsPersistent)
+        {
+          Session.Persist(innerMap);
+          Session.Persist(set);
+        }
         innerMap.Add(head.VertexId, set);
         map.Add(tail.VertexType, innerMap);
       }
       else if (!innerMap.TryGetValue(head.VertexId, out set))
       {
         set = new BTreeSet<EdgeIdVertexId>(null, session);
+        if (IsPersistent)
+          Session.Persist(set);
         innerMap.Add(head.VertexId, set);
       }
       set.Add(edgeVertexId(edge, tail.VertexId));
@@ -167,14 +193,14 @@ namespace VelocityGraph
           if (headSameVertex)
           {
             VertexType vt = g.vertexType[ids[2]];
-            other = vt.GetVertex(g, ids[3]);
+            other = vt.GetVertex(ids[3]);
           }
           else
           {
             if (tailSameVertex == false)
               continue;
             VertexType vt = g.vertexType[ids[0]];
-            other = vt.GetVertex(g, ids[1]);
+            other = vt.GetVertex(ids[1]);
           }
           Edge edge = etype.GetEdge(g, pair.Key, vertex1, other);
           HashSet<Edge> edges;
@@ -302,13 +328,14 @@ namespace VelocityGraph
     /// <param name="dt">Data type for the new Property.</param>
     /// <param name="kind">Property kind.</param>
     /// <returns>Unique Property identifier.</returns>
-    public PropertyType NewProperty(ref PropertyType[] propertyType, string name, DataType dt, PropertyKind kind)
+    public PropertyType NewProperty(string name, DataType dt, PropertyKind kind)
     {
       PropertyType aType;
       if (stringToPropertyType.TryGetValue(name, out aType) == false)
       {
-        int pos = propertyType.Length;
-        Array.Resize(ref propertyType, pos + 1);
+        int pos = graph.propertyType.Length;
+        graph.Update();
+        Array.Resize(ref graph.propertyType, pos + 1);
         Array.Resize(ref vertexProperties, vertexProperties.Length + 1);
         switch (dt)
         {
@@ -334,7 +361,9 @@ namespace VelocityGraph
             aType = new PropertyTypeT<object>(true, typeId, pos, name, kind, Session);
             break;
         }
-        propertyType[pos] = aType;
+        if (IsPersistent)
+          graph.Session.Persist(aType);
+        graph.propertyType[pos] = aType;
         vertexProperties[vertexProperties.Length - 1] = aType;
         stringToPropertyType.Add(name, aType);
       }
@@ -381,11 +410,11 @@ namespace VelocityGraph
             foreach (var p1 in map)
               foreach (var p2 in p1.Value)
               {
-                Vertex vertex1 = GetVertex(g, p2.Key);
+                Vertex vertex1 = GetVertex(p2.Key);
                 foreach (UInt64 l in p2.Value)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = etype.GetEdge(g, eId, vertex2, vertex1);
                   yield return edge;
@@ -397,11 +426,11 @@ namespace VelocityGraph
             foreach (var p1 in map)
               foreach (var p2 in p1.Value)
               {
-                Vertex vertex1 = GetVertex(g, p2.Key);
+                Vertex vertex1 = GetVertex(p2.Key);
                 foreach (UInt64 l in p2.Value)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = etype.GetEdge(g, eId, vertex1, vertex2);
                   yield return edge;
@@ -413,11 +442,11 @@ namespace VelocityGraph
             foreach (var p1 in map)
               foreach (var p2 in p1.Value)
               {
-                Vertex vertex1 = GetVertex(g, p2.Key);
+                Vertex vertex1 = GetVertex(p2.Key);
                 foreach (UInt64 l in p2.Value)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = etype.GetEdge(g, eId, vertex2, vertex1);
                   yield return edge;
@@ -427,11 +456,11 @@ namespace VelocityGraph
             foreach (var p1 in map)
               foreach (var p2 in p1.Value)
               {
-                Vertex vertex1 = GetVertex(g, p2.Key);
+                Vertex vertex1 = GetVertex(p2.Key);
                 foreach (UInt64 l in p2.Value)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = etype.GetEdge(g, eId, vertex1, vertex2);
                   yield return edge;
@@ -455,7 +484,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = p0.Key.GetEdge(g, eId, vertex2, vertex1);
                   yield return edge;
@@ -473,7 +502,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = p0.Key.GetEdge(g, eId, vertex1, vertex2);
                   yield return edge;
@@ -491,7 +520,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = p0.Key.GetEdge(g, eId, vertex2, vertex1);
                   yield return edge;
@@ -507,7 +536,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = p0.Key.GetEdge(g, eId, vertex1, vertex2);
                   yield return edge;
@@ -533,7 +562,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = edgeType.GetEdge(g, eId, vertex2, vertex1);
                   yield return edge;
@@ -551,7 +580,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = edgeType.GetEdge(g, eId, vertex1, vertex2);
                   yield return edge;
@@ -569,7 +598,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = edgeType.GetEdge(g, eId, vertex2, vertex1);
                   yield return edge;
@@ -585,7 +614,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = edgeType.GetEdge(g, eId, vertex1, vertex2);
                   yield return edge;
@@ -642,7 +671,7 @@ namespace VelocityGraph
       int i = 0;
       foreach (VertexId vId in vertecis)
       {
-        vArray[i++] = GetVertex(g, vId);
+        vArray[i++] = GetVertex(vId);
       }
       return vArray;
     }
@@ -662,7 +691,7 @@ namespace VelocityGraph
                 foreach (long l in set)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   yield return vertex2;
                 }
               }
@@ -677,7 +706,7 @@ namespace VelocityGraph
                 foreach (long l in set)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   yield return vertex2;
                 }
               }
@@ -692,7 +721,7 @@ namespace VelocityGraph
                 foreach (long l in set)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   yield return vertex2;
                 }
               }
@@ -705,7 +734,7 @@ namespace VelocityGraph
                 foreach (long l in set)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(g, vId);
+                  Vertex vertex2 = GetVertex(vId);
                   yield return vertex2;
                 }
               }
@@ -727,7 +756,7 @@ namespace VelocityGraph
             foreach (UInt64 l in edgeVertexSet)
             {
               VertexId vId = (int)l;
-              Vertex vertex2 = GetVertex(graph, vId);
+              Vertex vertex2 = GetVertex(vId);
               EdgeId eId = (int)(l >> 32);
               Edge edge = m.Key.GetEdge(graph, eId, vertex2, vertex);
               edgesToRemove.Add(edge);
@@ -747,7 +776,7 @@ namespace VelocityGraph
               foreach (EdgeIdVertexId l in toRemove)
               {
                 VertexId vId = (int)l;
-                Vertex vertex2 = GetVertex(graph, vId);
+                Vertex vertex2 = GetVertex(vId);
                 EdgeId eId = (int)(l >> 32);
                 Edge edge = m.Key.GetEdge(graph, eId, vertex2, vertex);
                 edgesToRemove.Add(edge);

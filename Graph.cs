@@ -85,7 +85,7 @@ namespace VelocityGraph
       Features.SupportsMapProperty = true;
       Features.SupportsStringProperty = true;
 
-      Features.IgnoresSuppliedIds = false;
+      Features.IgnoresSuppliedIds = true;
       Features.IsPersistent = true;
       Features.IsRdfModel = false;
       Features.IsWrapper = false;
@@ -324,6 +324,8 @@ namespace VelocityGraph
         Update();
         Array.Resize(ref vertexType, (int)++vertexTypeCt);
         aType = new VertexType(pos, name, this);
+        if (IsPersistent)
+          Session.Persist(aType);
         vertexType[pos] = aType;
         stringToVertexType.Add(name, aType);
       }
@@ -346,6 +348,8 @@ namespace VelocityGraph
         Update();
         Array.Resize(ref edgeType, ++edgeTypeCt);
         aType = new EdgeType(pos, name, null, null, directed, this);
+        if (IsPersistent)
+          Session.Persist(aType);
         edgeType[pos] = aType;
         stringToEdgeType.Add(name, aType);
       }
@@ -370,6 +374,8 @@ namespace VelocityGraph
         Update();
         Array.Resize(ref edgeType, ++edgeTypeCt);
         aType = new EdgeType(pos, name, tailType, headType, directed, this);
+        if (IsPersistent)
+          Session.Persist(aType);
         edgeType[pos] = aType;
         stringToEdgeType.Add(name, aType);
       }
@@ -386,7 +392,7 @@ namespace VelocityGraph
     /// <returns>Unique Property identifier.</returns>
     public PropertyType NewVertexProperty(VertexType vertexType, string name, DataType dt, PropertyKind kind)
     {
-      return vertexType.NewProperty(ref propertyType, name, dt, kind);
+      return vertexType.NewProperty(name, dt, kind);
     }
 
     /// <summary>
@@ -399,7 +405,7 @@ namespace VelocityGraph
     /// <returns>Unique Property identifier.</returns>
     public PropertyType NewEdgeProperty(EdgeType edgeType, string name, DataType dt, PropertyKind kind)
     {
-      return edgeType.NewProperty(ref propertyType, name, dt, kind);
+      return edgeType.NewProperty(name, dt, kind);
     }
 
     /// <summary>
@@ -622,7 +628,7 @@ namespace VelocityGraph
         VertexTypeId vertexTypeId = (VertexTypeId)(fullId >> 32);
         VertexType vt = vertexType[vertexTypeId];
         VertexTypeId vertexId = (VertexTypeId)fullId;
-        Vertex vertex = vt.GetVertex(this, vertexId);
+        Vertex vertex = vt.GetVertex(vertexId);
         return vertex;
       }
       if (id is string)
@@ -633,7 +639,7 @@ namespace VelocityGraph
           VertexTypeId vertexTypeId = (VertexTypeId)(fullId >> 32);
           VertexType vt = vertexType[vertexTypeId];
           VertexTypeId vertexId = (VertexTypeId)fullId;
-          Vertex vertex = vt.GetVertex(this, vertexId);
+          Vertex vertex = vt.GetVertex(vertexId);
           return vertex;
         }
       }
@@ -662,7 +668,7 @@ namespace VelocityGraph
         foreach (VertexType vt in vertexType)
         {
           PropertyType pt = vt.FindProperty(key);
-          foreach (Vertex vertex in pt.GetPropertyVertices(value, this))
+          foreach (Vertex vertex in pt.GetPropertyVertices(value, vt))
             yield return vertex;
         }
     }

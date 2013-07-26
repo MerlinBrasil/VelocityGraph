@@ -90,6 +90,7 @@ namespace VelocityGraph
           int pos = oidArray.Length;
           Array.Resize(ref oidArray, pos + 1);
           oidArray[pos] = element;
+          valueIndex[aValue] = oidArray;
         }
       }
       else if (valueIndexUnique != null)
@@ -108,7 +109,7 @@ namespace VelocityGraph
       if (elementId == -1)
         return null;
       VertexType vertexType = g.vertexType[TypeId];
-      return vertexType.GetVertex(g, elementId);
+      return vertexType.GetVertex(elementId);
     }
 
     public override Vertex GetPropertyVertex(object value, Graph g)
@@ -118,26 +119,25 @@ namespace VelocityGraph
       return GetPropertyVertex((T) value, g);
     }
 
-    public IEnumerable<Vertex> GetPropertyVertices(T value, Graph g)
+    public IEnumerable<Vertex> GetPropertyVertices(T value, VertexType vertexType)
     {
       VertexId elementId = -1;
-      VertexType vertexType = g.vertexType[TypeId];
       if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
       {
         ElementId[] elementIds;
         if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
           foreach (ElementId eId in elementIds)
-            yield return vertexType.GetVertex(g, eId);
+            yield return vertexType.GetVertex(eId);
       }
       if (elementId != -1)
-        yield return vertexType.GetVertex(g, elementId);
+        yield return vertexType.GetVertex(elementId);
     }
 
-    public override IEnumerable<Vertex> GetPropertyVertices(object value, Graph g)
+    public override IEnumerable<Vertex> GetPropertyVertices(object value, VertexType vertexType)
     {
       if (IsVertexProperty == false)
         throw new InvalidTypeIdException();
-      return GetPropertyVertices((T)value, g);
+      return GetPropertyVertices((T)value, vertexType);
     }
 
     public Edge GetPropertyEdge(T value, Graph g)

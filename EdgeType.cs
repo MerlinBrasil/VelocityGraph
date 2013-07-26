@@ -78,16 +78,16 @@ namespace VelocityGraph
       {
         if (headType != null)
         {
-          Vertex head = headType.GetVertex(g, headTail[1]);
-          Vertex tail = tailType.GetVertex(g, headTail[3]);
+          Vertex head = headType.GetVertex(headTail[1]);
+          Vertex tail = tailType.GetVertex(headTail[3]);
           return new Edge(g, this, edgeId, head, tail);
         }
         else
         {
           VertexType vt = g.vertexType[headTail[0]];
-          Vertex head = vt.GetVertex(g, headTail[1]);
+          Vertex head = vt.GetVertex(headTail[1]);
           vt = g.vertexType[headTail[2]];
-          Vertex tail = vt.GetVertex(g, headTail[3]);
+          Vertex tail = vt.GetVertex(headTail[3]);
           return new Edge(g, this, edgeId, head, tail);
         }
       }
@@ -101,9 +101,9 @@ namespace VelocityGraph
       foreach (var m in edges)
       {
         VertexType vt1 = g.vertexType[m.Value[0]];
-        Vertex head = vt1.GetVertex(g, m.Value[1]);
+        Vertex head = vt1.GetVertex(m.Value[1]);
         VertexType vt2 = g.vertexType[m.Value[2]];
-        Vertex tail = vt2.GetVertex(g, m.Value[3]);
+        Vertex tail = vt2.GetVertex(m.Value[3]);
         edgeAray[i++] = GetEdge(g, m.Key, head, tail);
       }
       return edgeAray;
@@ -142,13 +142,14 @@ namespace VelocityGraph
     /// <param name="dt">Data type for the new Property.</param>
     /// <param name="kind">Property kind.</param>
     /// <returns>a Property.</returns>
-    public PropertyType NewProperty(ref PropertyType[] propertyType, string name, DataType dt, PropertyKind kind)
+    public PropertyType NewProperty(string name, DataType dt, PropertyKind kind)
     {
       PropertyType aType;
       if (stringToPropertyType.TryGetValue(name, out aType) == false)
       {
-        int pos = propertyType.Length;
-        Array.Resize(ref propertyType, pos + 1);
+        int pos = graph.propertyType.Length;
+        graph.Update();
+        Array.Resize(ref graph.propertyType, pos + 1);
         switch (dt)
         {
           case DataType.Boolean:
@@ -173,7 +174,9 @@ namespace VelocityGraph
             aType = new PropertyTypeT<object>(false,this.TypeId,pos, name, kind, Session);
             break;
         }
-        propertyType[pos] = aType;
+        if (IsPersistent)
+          Session.Persist(aType);
+        graph.propertyType[pos] = aType;
         stringToPropertyType.Add(name, aType);
       }
       return aType;
@@ -186,13 +189,14 @@ namespace VelocityGraph
     /// <param name="value">Object guiding the type of the property.</param>
     /// <param name="kind">Property kind.</param>
     /// <returns>a Property.</returns>
-    internal PropertyType NewProperty(ref PropertyType[] propertyType, string name, object value, PropertyKind kind)
+    internal PropertyType NewProperty(string name, object value, PropertyKind kind)
     {
       PropertyType aType;
       if (stringToPropertyType.TryGetValue(name, out aType) == false)
       {
-        int pos = propertyType.Length;
-        Array.Resize(ref propertyType, pos + 1);
+        int pos = graph.propertyType.Length;
+        graph.Update();
+        Array.Resize(ref graph.propertyType, pos + 1);
         switch (Type.GetTypeCode(value.GetType()))
         {
           case TypeCode.Boolean:
@@ -220,7 +224,9 @@ namespace VelocityGraph
             aType = new PropertyTypeT<object>(false,this.TypeId,pos, name, kind, Session);
             break;
         }
-        propertyType[pos] = aType;
+        if (IsPersistent)
+          Session.Persist(aType);
+        graph.propertyType[pos] = aType;
         stringToPropertyType.Add(name, aType);
       }
       return aType;
