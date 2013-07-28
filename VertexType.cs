@@ -15,6 +15,7 @@ using Frontenac.Blueprints;
 
 namespace VelocityGraph
 {
+  [Serializable]
   public class VertexType : OptimizedPersistable
   {
     internal Graph graph;

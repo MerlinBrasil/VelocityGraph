@@ -6,6 +6,7 @@ using TypeId = System.Int32;
 using EdgeId = System.Int32;
 using PropertyId = System.Int32;
 using Frontenac.Blueprints;
+using Frontenac.Blueprints.Util;
 
 namespace VelocityGraph
 {
@@ -179,6 +180,8 @@ namespace VelocityGraph
         throw new ArgumentException("Property key may not be null or be an empty string");
       if (value == null)
         throw new ArgumentException("Property value may not be null");
+      if (key.Equals(StringFactory.Id))
+        throw ExceptionFactory.PropertyKeyIdIsReserved();
       PropertyType pt = edgeType.FindProperty(key);
       if (pt == null)
         pt = edgeType.NewProperty(key, value, PropertyKind.Indexed);

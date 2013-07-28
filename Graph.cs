@@ -13,6 +13,7 @@ using VertexTypeId = System.Int32;
 using EdgeTypeId = System.Int32;
 using Frontenac.Blueprints;
 using Frontenac.Blueprints.Util;
+using System.Globalization;
 
 namespace VelocityGraph
 {
@@ -54,6 +55,7 @@ namespace VelocityGraph
     Unique
   }
 
+  [Serializable]
   public class Graph : OptimizedPersistable, IGraph
   {
     BTreeMap<string, VertexType> stringToVertexType;
@@ -691,6 +693,11 @@ namespace VelocityGraph
     public void TailsAndHeads(HashSet<Edge> edges, Dictionary<Vertex, HashSet<Edge>> tails, Dictionary<Vertex, HashSet<Edge>> heads)
     {
       throw new NotImplementedException();
+    }
+
+    public override string ToString()
+    {
+      return StringFactory.GraphString(this, string.Concat("vertices:", CountVertices().ToString(CultureInfo.InvariantCulture), " edges:", CountEdges().ToString(CultureInfo.InvariantCulture)));
     }
 
     public VertexType[] FindVertexTypes()

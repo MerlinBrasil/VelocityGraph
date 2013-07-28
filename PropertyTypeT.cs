@@ -14,6 +14,7 @@ using Frontenac.Blueprints;
 
 namespace VelocityGraph
 {
+  [Serializable]
   public class PropertyTypeT<T> : PropertyType
   {
     BTreeMap<ElementId, T> propertyValue;

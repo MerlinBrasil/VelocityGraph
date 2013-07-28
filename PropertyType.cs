@@ -11,6 +11,7 @@ using Frontenac.Blueprints;
 
 namespace VelocityGraph
 {
+  [Serializable]
   abstract public class PropertyType : OptimizedPersistable
   {
     string propertyName;

@@ -15,6 +15,7 @@ using Frontenac.Blueprints.Util;
 
 namespace VelocityGraph
 {
+  [Serializable]
   public class EdgeType : OptimizedPersistable, IComparable<EdgeType>, IEqualityComparer<EdgeType>
   {
     internal Graph graph;

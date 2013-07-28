@@ -154,9 +154,12 @@ namespace VelocityGraph
         foreach (string label in labels)
         {
           EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
-          EdgeType edgeType = graph.edgeType[edgeTypeId];
-          foreach (IEdge edge in vertexType.GetEdges(graph, edgeType, this, Direction.In))
-            yield return edge;
+          if (edgeTypeId >= 0)
+          {
+            EdgeType edgeType = graph.edgeType[edgeTypeId];
+            foreach (IEdge edge in vertexType.GetEdges(graph, edgeType, this, Direction.In))
+              yield return edge;
+          }
         }
       }
     }
@@ -278,6 +281,8 @@ namespace VelocityGraph
         throw new ArgumentException("Property key may not be null or be an empty string");
       if (value == null)
         throw new ArgumentException("Property value may not be null");
+      if (key.Equals(StringFactory.Id))
+        throw ExceptionFactory.PropertyKeyIdIsReserved();
       PropertyType pt = vertexType.FindProperty(key);
       if (pt == null)
         pt = vertexType.graph.NewVertexProperty(vertexType, key, DataType.Object, PropertyKind.Indexed);
