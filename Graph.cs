@@ -11,6 +11,7 @@ using PropertyTypeId = System.Int32;
 using PropertyId = System.Int32;
 using VertexTypeId = System.Int32;
 using EdgeTypeId = System.Int32;
+using EdgeIdVertexId = System.UInt64;
 using Frontenac.Blueprints;
 using Frontenac.Blueprints.Util;
 using System.Globalization;
@@ -713,6 +714,33 @@ namespace VelocityGraph
     public object[] GetValues(PropertyType property)
     {
       throw new NotImplementedException();
+    }
+
+    public override UInt64 Persist(Placement place, SessionBase session, bool persistRefs = true, bool disableFlush = false, Queue<IOptimizedPersistable> toPersist = null)
+    {
+      if (IsPersistent)
+        return Id;
+      session.RegisterClass(typeof(PropertyType));
+      session.RegisterClass(typeof(VertexType));
+      session.RegisterClass(typeof(EdgeType));
+      session.RegisterClass(typeof(BTreeSet<VertexId>));
+      session.RegisterClass(typeof(BTreeSet<EdgeType>));
+      session.RegisterClass(typeof(BTreeSet<EdgeIdVertexId>));
+      session.RegisterClass(typeof(BTreeMap<EdgeId, VertexId[]>));
+      session.RegisterClass(typeof(BTreeMap<string, PropertyType>));
+      session.RegisterClass(typeof(BTreeMap<string, EdgeType>));
+      session.RegisterClass(typeof(BTreeMap<string, VertexType>));
+      session.RegisterClass(typeof(BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>));
+      session.RegisterClass(typeof(BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>));
+      session.RegisterClass(typeof(BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>));
+      session.RegisterClass(typeof(PropertyTypeT<bool>));
+      session.RegisterClass(typeof(PropertyTypeT<int>));
+      session.RegisterClass(typeof(PropertyTypeT<long>));
+      session.RegisterClass(typeof(PropertyTypeT<double>));
+      session.RegisterClass(typeof(PropertyTypeT<DateTime>));
+      session.RegisterClass(typeof(PropertyTypeT<string>));
+      session.RegisterClass(typeof(PropertyTypeT<object>));
+      return base.Persist(place, session, persistRefs, disableFlush, toPersist);
     }
   }
 }
