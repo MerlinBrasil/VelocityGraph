@@ -206,9 +206,22 @@ namespace VelocityGraph
       return null;
     }
 
+   
+
     public override void SetPropertyValue(ElementId element, object value)
     {
-      SetPropertyValueX(element, (T)value);
+      /*Type fromType = value.GetType();
+      Type toType = typeof(T);
+      if (fromType.IsValueType)
+      {
+        TypeCode tc = Type.GetTypeCode(fromType);
+        switch (tc)
+        {
+          case TypeCode.Int32:
+            SetPropertyValueX(element, (T)(int)value);
+        }
+      }*/
+      SetPropertyValueX(element, (T) value);
     }
   }
 }

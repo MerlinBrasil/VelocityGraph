@@ -124,6 +124,18 @@ namespace VelocityGraph
       NewEdgeType("default", true); // not sure if we need "directed" or not as edge type parameter ???
     }
 
+    public void Dispose()
+    {
+      // not sure what can be done here, Session may be active with something else
+      if (session != null)
+      {
+        session.Commit();
+        session.Dispose(); // this is not safe to do but in order for tests to pass as as, this is required for now
+        session = null;
+      }
+      GC.SuppressFinalize(this);
+    }
+
     public static Graph Open(SessionBase session, int graphInstance = 0)
     {
       UInt32 dbNum = session.DatabaseNumberOf(typeof(Graph));
@@ -509,7 +521,7 @@ namespace VelocityGraph
     /// A shutdown function is required to properly close the graph.
     /// This is important for implementations that utilize disk-based serializations.
     /// </summary>
-    void IGraph.Shutdown()
+    void Shutdown()
     {
       if (Session.InTransaction)
         Session.Commit();
