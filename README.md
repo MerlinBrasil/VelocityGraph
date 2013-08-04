@@ -1,5 +1,4 @@
-﻿VelocityGraph
-==========================================
+# VelocityGraph ![](http://www.VelocityDB.com/images/VelocityGraph.png)
 
 Our goal is to make VelocityGraph the world's fastest most scalable graph database with complete graph API support. Features are rapidly being added to VelocityGraph. We listen to what you request and we will try to add most of what you need. Let us know what is currently missing.
 
