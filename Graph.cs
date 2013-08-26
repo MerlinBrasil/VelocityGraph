@@ -70,42 +70,42 @@ namespace VelocityGraph
     internal PropertyType[] propertyType;
     [NonSerialized]
     SessionBase session;
-    static readonly Features Features = new Features();
+    static readonly Features features = new Features();
 
     static Graph()
     {
-      Features.SupportsDuplicateEdges = true;
-      Features.SupportsSelfLoops = true;
-      Features.SupportsSerializableObjectProperty = true;
-      Features.SupportsBooleanProperty = true;
-      Features.SupportsDoubleProperty = true;
-      Features.SupportsFloatProperty = true;
-      Features.SupportsIntegerProperty = true;
-      Features.SupportsPrimitiveArrayProperty = true;
-      Features.SupportsUniformListProperty = true;
-      Features.SupportsMixedListProperty = true;
-      Features.SupportsLongProperty = true;
-      Features.SupportsMapProperty = true;
-      Features.SupportsStringProperty = true;
+      features.SupportsDuplicateEdges = true;
+      features.SupportsSelfLoops = true;
+      features.SupportsSerializableObjectProperty = true;
+      features.SupportsBooleanProperty = true;
+      features.SupportsDoubleProperty = true;
+      features.SupportsFloatProperty = true;
+      features.SupportsIntegerProperty = true;
+      features.SupportsPrimitiveArrayProperty = true;
+      features.SupportsUniformListProperty = true;
+      features.SupportsMixedListProperty = true;
+      features.SupportsLongProperty = true;
+      features.SupportsMapProperty = true;
+      features.SupportsStringProperty = true;
 
-      Features.IgnoresSuppliedIds = true;
-      Features.IsPersistent = true;
-      Features.IsRdfModel = false;
-      Features.IsWrapper = false;
+      features.IgnoresSuppliedIds = true;
+      features.IsPersistent = true;
+      features.IsRdfModel = false;
+      features.IsWrapper = false;
 
-      Features.SupportsIndices = false;
-      Features.SupportsKeyIndices = false;
-      Features.SupportsVertexKeyIndex = false;
-      Features.SupportsEdgeKeyIndex = false;
-      Features.SupportsVertexIndex = false;
-      Features.SupportsEdgeIndex = false;
-      Features.SupportsTransactions = true;
-      Features.SupportsVertexIteration = true;
-      Features.SupportsEdgeIteration = true;
-      Features.SupportsEdgeRetrieval = true;
-      Features.SupportsVertexProperties = true;
-      Features.SupportsEdgeProperties = true;
-      Features.SupportsThreadedTransactions = true;
+      features.SupportsIndices = false;
+      features.SupportsKeyIndices = false;
+      features.SupportsVertexKeyIndex = false;
+      features.SupportsEdgeKeyIndex = false;
+      features.SupportsVertexIndex = false;
+      features.SupportsEdgeIndex = false;
+      features.SupportsTransactions = true;
+      features.SupportsVertexIteration = true;
+      features.SupportsEdgeIteration = true;
+      features.SupportsEdgeRetrieval = true;
+      features.SupportsVertexProperties = true;
+      features.SupportsEdgeProperties = true;
+      features.SupportsThreadedTransactions = true;
     }
 
     public Graph(SessionBase session)
@@ -124,7 +124,7 @@ namespace VelocityGraph
       NewEdgeType("default", true); // not sure if we need "directed" or not as edge type parameter ???
     }
 
-    public void Dispose()
+  /*  public void Dispose()
     {
       // not sure what can be done here, Session may be active with something else
       if (session != null)
@@ -134,7 +134,7 @@ namespace VelocityGraph
         session = null;
       }
       GC.SuppressFinalize(this);
-    }
+    }*/
 
     public static Graph Open(SessionBase session, int graphInstance = 0)
     {
@@ -275,9 +275,12 @@ namespace VelocityGraph
       }
     }
 
-    public virtual Features GetFeatures()
+    public virtual Features Features
     {
-      return Features;
+      get
+      {
+        return features;
+      }
     }
 
     public override SessionBase Session
@@ -521,7 +524,7 @@ namespace VelocityGraph
     /// A shutdown function is required to properly close the graph.
     /// This is important for implementations that utilize disk-based serializations.
     /// </summary>
-    void Shutdown()
+    public void Shutdown()
     {
       if (Session.InTransaction)
         Session.Commit();

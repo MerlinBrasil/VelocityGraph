@@ -58,7 +58,7 @@ namespace VelocityGraph
     /// All edges of a graph must have unique identifiers.
     /// </summary>
     /// <returns>the identifier of the element</returns>
-    public abstract object GetId();
+    public abstract object Id { get; }
 
     public override bool Equals(object obj)
     {

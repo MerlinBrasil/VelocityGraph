@@ -45,12 +45,15 @@ namespace VelocityGraph
     /// All edges of a graph must have unique identifiers.
     /// </summary>
     /// <returns>the identifier of the element</returns>
-    public override object GetId()
+    public override object Id
     {
-      UInt64 fullId = (UInt64)vertexType.TypeId;
-      fullId <<= 32;
-      fullId += (UInt64)id;
-      return fullId;
+      get
+      {
+        UInt64 fullId = (UInt64)vertexType.TypeId;
+        fullId <<= 32;
+        fullId += (UInt64)id;
+        return fullId;
+      }
     }
 
     /// <summary>

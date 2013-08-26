@@ -51,21 +51,27 @@ namespace VelocityGraph
     /// All edges of a graph must have unique identifiers.
     /// </summary>
     /// <returns>the identifier of the element</returns>
-    public override object GetId()
+    public override object Id
     {
-      UInt64 fullId = (UInt64)edgeType.TypeId;
-      fullId <<= 32;
-      fullId += (UInt64)id;
-      return fullId;
+      get
+      {
+        UInt64 fullId = (UInt64)edgeType.TypeId;
+        fullId <<= 32;
+        fullId += (UInt64)id;
+        return fullId;
+      }
     }
 
     /// <summary>
     /// Return the label associated with the edge.
     /// </summary>
     /// <returns>the edge label</returns>
-    string IEdge.GetLabel()
+    string IEdge.Label
     {
-      return edgeType.TypeName;
+      get
+      {
+        return edgeType.TypeName;
+      }
     }
 
     /// <summary>
