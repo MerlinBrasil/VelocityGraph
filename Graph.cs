@@ -572,7 +572,7 @@ namespace VelocityGraph
     /// Generate a query object that can be used to fine tune which edges/vertices are retrieved from the graph.
     /// </summary>
     /// <returns>a graph query object with methods for constraining which data is pulled from the underlying graph</returns>
-    IGraphQuery IGraph.Query()
+    IQuery IGraph.Query()
     {
       return new DefaultGraphQuery(this);
     }
