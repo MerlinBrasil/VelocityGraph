@@ -30,11 +30,8 @@ namespace VelocityGraph
 
     public IEdge AddEdge(string label, IVertex inVertex)
     {
-      EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
-      EdgeType edgeType;
-      if (edgeTypeId >= 0)
-        edgeType = graph.edgeType[edgeTypeId];
-      else
+      EdgeType edgeType = graph.FindEdgeType(label);
+      if (edgeType == null)
         edgeType = graph.NewEdgeType(label, true);
       return graph.NewEdge(edgeType, this, inVertex as Vertex);
     }
@@ -59,12 +56,11 @@ namespace VelocityGraph
     /// <summary>
     /// Gets the number of edges from or to this vertex and for the given edge type. 
     /// </summary>
-    /// <param name="etype">the id of an EdgeType</param>
-    /// <param name="dir">direction, one of: Ingoing, Outgoing, Any</param>
+    /// <param name="edgeType">an EdgeType</param>
+    /// <param name="dir">direction, one of: Out, In, Both</param>
     /// <returns>The number of edges.</returns>
-    public long GetNumberOfEdges(EdgeTypeId etype, Direction dir)
+    public long GetNumberOfEdges(EdgeType edgeType, Direction dir)
     {
-      EdgeType edgeType = graph.edgeType[etype];
       return vertexType.GetNumberOfEdges(edgeType, dir);
     }
 
@@ -114,10 +110,9 @@ namespace VelocityGraph
     /// <param name="etype">the id of an EdgeType</param>
     /// <param name="dir">direction, one of: Out, In, Both</param>
     /// <returns>a set of Edge</returns>
-    public IEnumerable<IEdge> GetEdges(EdgeTypeId etype, Direction dir)
+    public IEnumerable<IEdge> GetEdges(EdgeType edgeType, Direction dir)
     {
-      EdgeType edgeType = graph.edgeType[etype];
-      return vertexType.GetEdges(graph, edgeType, dir);
+      return vertexType.GetEdges(graph, edgeType, this, dir);
     }
 
     /// <summary>
@@ -156,10 +151,9 @@ namespace VelocityGraph
       {
         foreach (string label in labels)
         {
-          EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
-          if (edgeTypeId >= 0)
+          EdgeType edgeType = graph.FindEdgeType(label);
+          if (edgeType != null)
           {
-            EdgeType edgeType = graph.edgeType[edgeTypeId];
             foreach (IEdge edge in vertexType.GetEdges(graph, edgeType, this, Direction.In))
               yield return edge;
           }
@@ -178,8 +172,7 @@ namespace VelocityGraph
       {
         foreach (string label in labels)
         {
-          EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
-          EdgeType edgeType = graph.edgeType[edgeTypeId];
+          EdgeType edgeType = graph.FindEdgeType(label);
           foreach (IEdge edge in vertexType.GetEdges(graph, edgeType, this, Direction.Out))
             yield return edge;
         }
@@ -208,8 +201,7 @@ namespace VelocityGraph
       {
         foreach (string label in labels)
         {
-          EdgeTypeId edgeTypeId = graph.FindEdgeType(label);
-          EdgeType edgeType = graph.edgeType[edgeTypeId];
+          EdgeType edgeType = graph.FindEdgeType(label);
           foreach (IVertex vertex in vertexType.GetVertices(graph, edgeType, this, direction))
             yield return vertex;
         }

@@ -75,6 +75,16 @@ namespace VelocityGraph
     }
 
     /// <summary>
+    /// Gets the Value for the given Property id
+    /// </summary>
+    /// <param name="property">Property type identifier.</param>
+    /// <param name="v">Value for the given Property and for the given id.</param>
+    public object GetProperty(PropertyType property)
+    {
+      return edgeType.GetPropertyValue(EdgeId, property);
+    }
+    
+    /// <summary>
     /// Return the object value associated with the provided string key.
     /// If no value exists for that key, return null.
     /// </summary>

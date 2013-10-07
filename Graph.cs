@@ -166,11 +166,9 @@ namespace VelocityGraph
       EdgeType et;
       if (label != null && label.Length > 0)
       {
-        EdgeTypeId etId = FindEdgeType(label);
-        if (etId < 0)
+        et = FindEdgeType(label);
+        if (et == null)
           et = NewEdgeType(label, true);
-        else
-          et = edgeType[etId];
       }
       else if (id is UInt64)
       {
@@ -535,14 +533,14 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="name">The name of the edge/node type being looked up</param>
     /// <returns>A node/edge type id or -1 if not found.</returns>
-    public EdgeTypeId FindEdgeType(string name)
+    public EdgeType FindEdgeType(string name)
     {
       EdgeType eType;
       //if (stringToRestrictedEdgeType.TryGetValue(name, out eType))
       //  return eType.TypeId;
       if (stringToEdgeType.TryGetValue(name, out eType))
-        return eType.TypeId;
-      return -1;
+        return eType;
+      return null;
     }
 
     /// <summary>

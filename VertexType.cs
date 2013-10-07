@@ -415,7 +415,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in p2.Value)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = etype.GetEdge(g, eId, vertex2, vertex1);
                   yield return edge;
@@ -431,7 +431,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in p2.Value)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = etype.GetEdge(g, eId, vertex1, vertex2);
                   yield return edge;
@@ -447,7 +447,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in p2.Value)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = etype.GetEdge(g, eId, vertex2, vertex1);
                   yield return edge;
@@ -461,7 +461,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in p2.Value)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = etype.GetEdge(g, eId, vertex1, vertex2);
                   yield return edge;
@@ -485,7 +485,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = p0.Key.GetEdge(g, eId, vertex2, vertex1);
                   yield return edge;
@@ -503,7 +503,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = p0.Key.GetEdge(g, eId, vertex1, vertex2);
                   yield return edge;
@@ -521,7 +521,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = p0.Key.GetEdge(g, eId, vertex2, vertex1);
                   yield return edge;
@@ -537,7 +537,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = p0.Key.GetEdge(g, eId, vertex1, vertex2);
                   yield return edge;
@@ -563,7 +563,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = edgeType.GetEdge(g, eId, vertex2, vertex1);
                   yield return edge;
@@ -581,7 +581,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = edgeType.GetEdge(g, eId, vertex1, vertex2);
                   yield return edge;
@@ -599,7 +599,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = edgeType.GetEdge(g, eId, vertex2, vertex1);
                   yield return edge;
@@ -615,7 +615,7 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   EdgeId eId = (int)(l >> 32);
                   Edge edge = edgeType.GetEdge(g, eId, vertex1, vertex2);
                   yield return edge;
