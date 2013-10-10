@@ -666,6 +666,50 @@ namespace VelocityGraph
       return numberOfEdges;
     }
 
+    public long GetNumberOfEdges(EdgeType etype, Vertex vertex, Direction dir)
+    {
+      BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
+      long numberOfEdges = 0;
+      switch (dir)
+      {
+        case Direction.Out:
+          if (tailToHeadEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+            {
+              BTreeSet<EdgeIdVertexId> edgeVertexSet;
+              if (p1.Value.TryGetValue(vertex.VertexId, out edgeVertexSet))
+                numberOfEdges += edgeVertexSet.Count;
+            }
+          break;
+        case Direction.In:
+          if (headToTailEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+            {
+              BTreeSet<EdgeIdVertexId> edgeVertexSet;
+              if (p1.Value.TryGetValue(vertex.VertexId, out edgeVertexSet))
+                numberOfEdges += edgeVertexSet.Count;
+            }
+          break;
+        case Direction.Both:
+          if (tailToHeadEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+            {
+              BTreeSet<EdgeIdVertexId> edgeVertexSet;
+              if (p1.Value.TryGetValue(vertex.VertexId, out edgeVertexSet))
+                numberOfEdges += edgeVertexSet.Count;
+            }
+          if (headToTailEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+            {
+              BTreeSet<EdgeIdVertexId> edgeVertexSet;
+              if (p1.Value.TryGetValue(vertex.VertexId, out edgeVertexSet))
+                numberOfEdges += edgeVertexSet.Count;
+            }
+          break;
+      }
+      return numberOfEdges;
+    }
+
     public Vertex[] GetVertices(Graph g)
     {
       Vertex[] vArray = new Vertex[vertecis.Count];

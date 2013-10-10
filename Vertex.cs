@@ -61,7 +61,7 @@ namespace VelocityGraph
     /// <returns>The number of edges.</returns>
     public long GetNumberOfEdges(EdgeType edgeType, Direction dir)
     {
-      return vertexType.GetNumberOfEdges(edgeType, dir);
+      return vertexType.GetNumberOfEdges(edgeType, this, dir);
     }
 
     public PropertyType[] GetProperties()
