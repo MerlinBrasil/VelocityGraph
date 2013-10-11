@@ -5,6 +5,7 @@ using System.Text;
 using VelocityDb;
 using VelocityDb.Collection.BTree;
 using VelocityDb.Session;
+using ElementId = System.Int32;
 using VertexId = System.Int32;
 using EdgeId = System.Int32;
 using PropertyTypeId = System.Int32;
@@ -15,6 +16,7 @@ using EdgeIdVertexId = System.UInt64;
 using Frontenac.Blueprints;
 using Frontenac.Blueprints.Util;
 using System.Globalization;
+using VelocityDb.Collection;
 
 namespace VelocityGraph
 {
@@ -739,7 +741,7 @@ namespace VelocityGraph
       session.RegisterClass(typeof(BTreeSet<VertexId>));
       session.RegisterClass(typeof(BTreeSet<EdgeType>));
       session.RegisterClass(typeof(BTreeSet<EdgeIdVertexId>));
-      session.RegisterClass(typeof(BTreeMap<EdgeId, VertexId[]>));
+      session.RegisterClass(typeof(BTreeMap<EdgeId, VelocityDbList<ElementId>>));
       session.RegisterClass(typeof(BTreeMap<string, PropertyType>));
       session.RegisterClass(typeof(BTreeMap<string, EdgeType>));
       session.RegisterClass(typeof(BTreeMap<string, VertexType>));

@@ -716,7 +716,7 @@ namespace VelocityGraph
       int i = 0;
       foreach (VertexId vId in vertecis)
       {
-        vArray[i++] = GetVertex(vId);
+        vArray[i++] = new Vertex(graph, this, vId);
       }
       return vArray;
     }

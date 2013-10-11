@@ -11,6 +11,7 @@ using TypeId = System.Int32;
 using VertexId = System.Int32;
 using EdgeId = System.Int32;
 using Frontenac.Blueprints;
+using VelocityDb.Collection;
 
 namespace VelocityGraph
 {
@@ -18,7 +19,7 @@ namespace VelocityGraph
   public class PropertyTypeT<T> : PropertyType
   {
     BTreeMap<ElementId, T> propertyValue;
-    BTreeMap<T, ElementId[]> valueIndex;
+    BTreeMap<T, VelocityDbList<ElementId>> valueIndex;
     BTreeMap<T, ElementId> valueIndexUnique;
 
     internal PropertyTypeT(bool isVertexProp, TypeId typeId, PropertyId propertyId, string name, PropertyKind kind, SessionBase session)
@@ -28,7 +29,7 @@ namespace VelocityGraph
       switch (kind)
       {
         case PropertyKind.Indexed:
-          valueIndex = new BTreeMap<T, ElementId[]>(null, session);
+          valueIndex = new BTreeMap<T, VelocityDbList<ElementId>>(null, session);
           break;
         case PropertyKind.Unique:
           valueIndexUnique = new BTreeMap<T, ElementId>(null, session);
@@ -52,16 +53,9 @@ namespace VelocityGraph
         {
           if (valueIndex.TryGetKey(pv, ref pv))
           {
-            ElementId[] oidArray = valueIndex[pv];
-            if (oidArray.Length > 1)
-            {
-              ElementId[] oidArrayReduced = new ElementId[oidArray.Length - 1];
-              int i = 0;
-              foreach (ElementId eId in oidArray)
-                if (eId != oid)
-                  oidArrayReduced[i++] = eId;
-              valueIndex[pv] = oidArrayReduced;
-            }
+            VelocityDbList<ElementId> oidArray = valueIndex[pv];
+            if (oidArray.Count > 1)
+              oidArray.Remove(oid);
             else
               valueIndex.Remove(pv);
           }
@@ -79,18 +73,19 @@ namespace VelocityGraph
       propertyValue[element] = aValue;
       if (valueIndex != null)
       {
-        ElementId[] oidArray = new ElementId[1];
+        VelocityDbList<ElementId> oidArray;
         if (!valueIndex.TryGetKey(aValue, ref aValue))
         {
-          oidArray[0] = element;
+          oidArray = new VelocityDbList<ElementId>();
+          if (IsPersistent)
+            Session.Persist(oidArray);
+          oidArray.Add(element);
           valueIndex.Add(aValue, oidArray);
         }
         else
         {
           oidArray = valueIndex[aValue];
-          int pos = oidArray.Length;
-          Array.Resize(ref oidArray, pos + 1);
-          oidArray[pos] = element;
+          oidArray.Add(element);
           valueIndex[aValue] = oidArray;
         }
       }
@@ -103,7 +98,7 @@ namespace VelocityGraph
       VertexId elementId = -1;
       if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
       {
-        ElementId[] elementIds;
+        VelocityDbList<ElementId> elementIds;
         if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
           elementId = elementIds[0];
       }
@@ -125,7 +120,7 @@ namespace VelocityGraph
       VertexId elementId = -1;
       if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
       {
-        ElementId[] elementIds;
+        VelocityDbList<ElementId> elementIds;
         if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
           foreach (ElementId eId in elementIds)
             yield return vertexType.GetVertex(eId);
@@ -146,7 +141,7 @@ namespace VelocityGraph
       EdgeId elementId = -1;
       if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
       {
-        ElementId[] elementIds;
+        VelocityDbList<ElementId> elementIds;
         if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
           elementId = elementIds[0];
       }
@@ -167,7 +162,7 @@ namespace VelocityGraph
       EdgeType edgeType = g.edgeType[TypeId];
       if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
       {
-        ElementId[] elementIds;
+        VelocityDbList<ElementId> elementIds;
         if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
           foreach (ElementId eId in elementIds)
             yield return edgeType.GetEdge(g, eId);
