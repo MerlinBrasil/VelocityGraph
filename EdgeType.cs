@@ -114,7 +114,7 @@ namespace VelocityGraph
     {
       if (edges.Contains(edgeId))
       {
-          return new Edge(g, this, edgeId, headVertex, tailVertex);
+        return new Edge(g, this, edgeId, headVertex, tailVertex);
       }
       throw new EdgeDoesNotExistException();
     }
@@ -157,22 +157,22 @@ namespace VelocityGraph
             aType = new PropertyTypeT<bool>(false, this.TypeId, pos, name, kind, Session);
             break;
           case DataType.Integer:
-            aType = new PropertyTypeT<int>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<int>(false, this.TypeId, pos, name, kind, Session);
             break;
           case DataType.Long:
-            aType = new PropertyTypeT<long>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<long>(false, this.TypeId, pos, name, kind, Session);
             break;
           case DataType.Double:
-            aType = new PropertyTypeT<double>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<double>(false, this.TypeId, pos, name, kind, Session);
             break;
           case DataType.DateTime:
-            aType = new PropertyTypeT<DateTime>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<DateTime>(false, this.TypeId, pos, name, kind, Session);
             break;
           case DataType.String:
-            aType = new PropertyTypeT<string>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<string>(false, this.TypeId, pos, name, kind, Session);
             break;
           case DataType.Object:
-            aType = new PropertyTypeT<object>(false,this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<object>(false, this.TypeId, pos, name, kind, Session);
             break;
         }
         if (IsPersistent)
@@ -182,7 +182,7 @@ namespace VelocityGraph
       }
       return aType;
     }
- 
+
     /// <summary>
     /// Creates a new Property. 
     /// </summary>
@@ -204,25 +204,25 @@ namespace VelocityGraph
             aType = new PropertyTypeT<bool>(false, this.TypeId, pos, name, kind, Session);
             break;
           case TypeCode.Int32:
-            aType = new PropertyTypeT<int>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<int>(false, this.TypeId, pos, name, kind, Session);
             break;
           case TypeCode.Int64:
-            aType = new PropertyTypeT<long>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<long>(false, this.TypeId, pos, name, kind, Session);
             break;
           case TypeCode.Single:
-            aType = new PropertyTypeT<Single>(false, this.TypeId,pos, name, kind, Session);
-            break;          
+            aType = new PropertyTypeT<Single>(false, this.TypeId, pos, name, kind, Session);
+            break;
           case TypeCode.Double:
-            aType = new PropertyTypeT<double>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<double>(false, this.TypeId, pos, name, kind, Session);
             break;
           case TypeCode.DateTime:
-            aType = new PropertyTypeT<DateTime>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<DateTime>(false, this.TypeId, pos, name, kind, Session);
             break;
           case TypeCode.String:
-            aType = new PropertyTypeT<string>(false, this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<string>(false, this.TypeId, pos, name, kind, Session);
             break;
           case TypeCode.Object:
-            aType = new PropertyTypeT<object>(false,this.TypeId,pos, name, kind, Session);
+            aType = new PropertyTypeT<object>(false, this.TypeId, pos, name, kind, Session);
             break;
         }
         if (IsPersistent)
@@ -236,10 +236,11 @@ namespace VelocityGraph
     public Edge NewEdge(Graph g, Vertex tail, Vertex head, SessionBase session)
     {
       Update();
-      edges.Add(++edgeCt, new ElementId[] { head.VertexType.TypeId, head.VertexId, tail.VertexType.TypeId, tail.VertexId });
+     // lock (edges)
+        edges.Add(++edgeCt, new ElementId[] { head.VertexType.TypeId, head.VertexId, tail.VertexType.TypeId, tail.VertexId });
       Edge edge = new Edge(g, this, edgeCt, head, tail);
       if (directed)
-      {       
+      {
         tail.VertexType.NewTailToHeadEdge(this, edge, tail, head, session);
         head.VertexType.NewHeadToTailEdge(this, edge, tail, head, session);
       }

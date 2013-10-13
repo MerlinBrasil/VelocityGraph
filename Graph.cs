@@ -471,19 +471,23 @@ namespace VelocityGraph
     /// <param name="etype">Edge type identifier.</param>
     /// <param name="dir">Direction.</param>
     /// <returns>Dictionary of vertex keys with edges path to vertex</returns>
-    public Dictionary<Vertex, HashSet<Edge>> Traverse(Dictionary<Vertex, HashSet<Edge>> vertices, EdgeType etype, Direction dir)
+    public Dictionary<Vertex, HashSet<Edge>> Traverse(Dictionary<Vertex, Edge> vertices, EdgeType etype, Direction dir)
     {
       Dictionary<Vertex, HashSet<Edge>> result = new Dictionary<Vertex, HashSet<Edge>>();
-      foreach (KeyValuePair<Vertex, HashSet<Edge>> p in vertices)
+      foreach (KeyValuePair<Vertex, Edge> p in vertices)
       {
-        Dictionary<Vertex, HashSet<Edge>> t = p.Key.Traverse(etype, dir);
-        foreach (KeyValuePair<Vertex, HashSet<Edge>> p2 in t)
+        Dictionary<Vertex, Edge> t = p.Key.Traverse(etype, dir);
+        foreach (KeyValuePair<Vertex, Edge> p2 in t)
         {
           HashSet<Edge> edges;
           if (result.TryGetValue(p2.Key, out edges))
-            edges.UnionWith(p2.Value);
+            edges.Add(p2.Value);
           else
-            result[p2.Key] = p2.Value;
+          {
+            edges = new HashSet<Edge>();
+            edges.Add(p2.Value);
+            result[p2.Key] = edges;
+          }
         }
       }
       return result;

@@ -218,6 +218,11 @@ namespace VelocityGraph
         pt = edgeType.graph.NewEdgeProperty(edgeType, key, DataType.Object, PropertyKind.Indexed);
       }
       edgeType.SetPropertyValue(EdgeId, pt, value);
-    } 
+    }
+
+    public override string ToString()
+    {
+      return "Edge: " + EdgeId;
+    }
   }
 }

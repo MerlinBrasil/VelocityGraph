@@ -70,42 +70,45 @@ namespace VelocityGraph
       BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
       BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>> innerMap;
       BTreeSet<EdgeIdVertexId> set;
-      if (!tailToHeadEdges.TryGetValue(edgeType, out map))
+      //lock (tailToHeadEdges)
       {
-        map = new BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>(null, session);
-        innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
-        set = new BTreeSet<EdgeIdVertexId>(null, session);        
-        if (IsPersistent)
+        if (!tailToHeadEdges.TryGetValue(edgeType, out map))
         {
-          Session.Persist(map);
-          Session.Persist(innerMap);
-          Session.Persist(set);
+          map = new BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>(null, session);
+          innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
+          set = new BTreeSet<EdgeIdVertexId>(null, session);
+          if (IsPersistent)
+          {
+            Session.Persist(map, 100);
+            Session.Persist(innerMap, 100);
+            Session.Persist(set, 1000);
+          }
+          innerMap.Add(tail.VertexId, set);
+          map.Add(head.VertexType, innerMap);
+          tailToHeadEdges.Add(edgeType, map);
+          edgeTypes.Add(edgeType);
         }
-        innerMap.Add(tail.VertexId, set);
-        map.Add(head.VertexType, innerMap);
-        tailToHeadEdges.Add(edgeType, map);
-        edgeTypes.Add(edgeType);
-      }
-      else if (!map.TryGetValue(head.VertexType, out innerMap))
-      {
-        innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
-        set = new BTreeSet<EdgeIdVertexId>(null, session);
-        if (IsPersistent)
+        else if (!map.TryGetValue(head.VertexType, out innerMap))
         {
-          Session.Persist(innerMap);
-          Session.Persist(set);
+          innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
+          set = new BTreeSet<EdgeIdVertexId>(null, session);
+          if (IsPersistent)
+          {
+            Session.Persist(innerMap, 100);
+            Session.Persist(set, 1000);
+          }
+          innerMap.Add(tail.VertexId, set);
+          map.Add(head.VertexType, innerMap);
         }
-        innerMap.Add(tail.VertexId, set);
-        map.Add(head.VertexType, innerMap);
+        else if (!innerMap.TryGetValue(tail.VertexId, out set))
+        {
+          set = new BTreeSet<EdgeIdVertexId>(null, session);
+          if (IsPersistent)
+            Session.Persist(set, 1000);
+          innerMap.Add(tail.VertexId, set);
+        }
+        set.Add(edgeVertexId(edge, head.VertexId));
       }
-      else if (!innerMap.TryGetValue(tail.VertexId, out set))
-      {
-        set = new BTreeSet<EdgeIdVertexId>(null, session);
-        if (IsPersistent)
-          Session.Persist(set);
-        innerMap.Add(tail.VertexId, set);
-      }
-      set.Add(edgeVertexId(edge, head.VertexId));
     }
 
     public void RemoveTailToHeadEdge(Edge edge)
@@ -135,42 +138,45 @@ namespace VelocityGraph
       BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
       BTreeMap<EdgeId, BTreeSet<EdgeIdVertexId>> innerMap;
       BTreeSet<EdgeIdVertexId> set;
-      if (!headToTailEdges.TryGetValue(edgeType, out map))
+      //lock (headToTailEdges)
       {
-        map = new BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>(null, session);
-        innerMap = new BTreeMap<EdgeId, BTreeSet<EdgeIdVertexId>>(null, session);
-        set = new BTreeSet<EdgeIdVertexId>(null, session);
-        if (IsPersistent)
+        if (!headToTailEdges.TryGetValue(edgeType, out map))
         {
-          Session.Persist(map);
-          Session.Persist(innerMap);
-          Session.Persist(set);
+          map = new BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>(null, session);
+          innerMap = new BTreeMap<EdgeId, BTreeSet<EdgeIdVertexId>>(null, session);
+          set = new BTreeSet<EdgeIdVertexId>(null, session);
+          if (IsPersistent)
+          {
+            Session.Persist(map, 100);
+            Session.Persist(innerMap, 100);
+            Session.Persist(set, 1000);
+          }
+          innerMap.Add(head.VertexId, set);
+          map.Add(tail.VertexType, innerMap);
+          headToTailEdges.Add(edgeType, map);
+          edgeTypes.Add(edgeType);
         }
-        innerMap.Add(head.VertexId, set);
-        map.Add(tail.VertexType, innerMap);
-        headToTailEdges.Add(edgeType, map);
-        edgeTypes.Add(edgeType);
-      }
-      else if (!map.TryGetValue(tail.VertexType, out innerMap))
-      {
-        innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
-        set = new BTreeSet<EdgeIdVertexId>(null, session);
-        if (IsPersistent)
+        else if (!map.TryGetValue(tail.VertexType, out innerMap))
         {
-          Session.Persist(innerMap);
-          Session.Persist(set);
+          innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
+          set = new BTreeSet<EdgeIdVertexId>(null, session);
+          if (IsPersistent)
+          {
+            Session.Persist(innerMap, 100);
+            Session.Persist(set, 1000);
+          }
+          innerMap.Add(head.VertexId, set);
+          map.Add(tail.VertexType, innerMap);
         }
-        innerMap.Add(head.VertexId, set);
-        map.Add(tail.VertexType, innerMap);
+        else if (!innerMap.TryGetValue(head.VertexId, out set))
+        {
+          set = new BTreeSet<EdgeIdVertexId>(null, session);
+          if (IsPersistent)
+            Session.Persist(set, 1000);
+          innerMap.Add(head.VertexId, set);
+        }
+        set.Add(edgeVertexId(edge, tail.VertexId));
       }
-      else if (!innerMap.TryGetValue(head.VertexId, out set))
-      {
-        set = new BTreeSet<EdgeIdVertexId>(null, session);
-        if (IsPersistent)
-          Session.Persist(set);
-        innerMap.Add(head.VertexId, set);
-      }
-      set.Add(edgeVertexId(edge, tail.VertexId));
     }
 
     public Vertex NewVertex(Graph g)
@@ -180,9 +186,9 @@ namespace VelocityGraph
       return new Vertex(g, this, vertexCt);
     }
 
-    public Dictionary<Vertex, HashSet<Edge>> Traverse(Graph g, Vertex vertex1, EdgeType etype, Direction dir)
+    public Dictionary<Vertex, Edge> Traverse(Graph g, Vertex vertex1, EdgeType etype, Direction dir)
     {
-      Dictionary<Vertex, HashSet<Edge>> result = new Dictionary<Vertex, HashSet<Edge>>();
+      Dictionary<Vertex, Edge> result = new Dictionary<Vertex, Edge>(10);
       if (etype.Directed == false)
       {
         foreach (var pair in etype.edges)
@@ -203,14 +209,12 @@ namespace VelocityGraph
             VertexType vt = g.vertexType[ids[0]];
             other = vt.GetVertex(ids[1]);
           }
+#if EdgeDebug
           Edge edge = etype.GetEdge(g, pair.Key, vertex1, other);
-          HashSet<Edge> edges;
-          if (!result.TryGetValue(other, out edges))
-          { // vertex not reached by any other edge
-            edges = new HashSet<Edge>();
-            result.Add(other, edges);
-          }
-          edges.Add(edge);
+#else
+          Edge edge = new Edge(g, etype, pair.Key, vertex1, other);
+#endif
+          result.Add(other, edge);
         }
       }
       else
@@ -231,14 +235,12 @@ namespace VelocityGraph
                   {
                     Vertex vertex2 = new Vertex(g, pair.Key, (VertexId)id);
                     EdgeId eId = (EdgeId)(id >> 32);
+#if EdgeDebug
                     Edge edge = etype.GetEdge(g, eId, vertex1, vertex2);
-                    HashSet<Edge> edges;
-                    if (!result.TryGetValue(vertex2, out edges))
-                    { // vertex not reached by any other edge
-                      edges = new HashSet<Edge>();
-                      result.Add(vertex2, edges);
-                    }
-                    edges.Add(edge);
+#else
+                    Edge edge = new Edge(g, etype, eId, vertex1, vertex2);
+#endif
+                    result.Add(vertex2, edge);
                   }
                 }
               }
@@ -256,14 +258,12 @@ namespace VelocityGraph
                   {
                     Vertex vertex2 = new Vertex(g, pair.Key, (VertexId)id);
                     EdgeId eId = (EdgeId)(id >> 32);
+#if EdgeDebug
                     Edge edge = etype.GetEdge(g, eId, vertex1, vertex2);
-                    HashSet<Edge> edges;
-                    if (!result.TryGetValue(vertex2, out edges))
-                    { // vertex not reached by any other edge
-                      edges = new HashSet<Edge>();
-                      result.Add(vertex2, edges);
-                    }
-                    edges.Add(edge);
+#else
+                    Edge edge = new Edge(g, etype, eId, vertex1, vertex2);
+#endif
+                    result.Add(vertex2, edge);
                   }
                 }
               }
@@ -281,14 +281,12 @@ namespace VelocityGraph
                   {
                     Vertex vertex2 = new Vertex(g, pair.Key, (VertexId)id);
                     EdgeId eId = (EdgeId)(id >> 32);
+#if EdgeDebug
                     Edge edge = etype.GetEdge(g, eId, vertex1, vertex2);
-                    HashSet<Edge> edges;
-                    if (!result.TryGetValue(vertex2, out edges))
-                    { // vertex not reached by any other edge
-                      edges = new HashSet<Edge>();
-                      result.Add(vertex2, edges);
-                    }
-                    edges.Add(edge);
+#else
+                    Edge edge = new Edge(g, etype, eId, vertex1, vertex2);
+#endif
+                    result.Add(vertex2, edge);
                   }
                 }
               }
@@ -304,14 +302,12 @@ namespace VelocityGraph
                   {
                     Vertex vertex2 = new Vertex(g, pair.Key, (VertexId)id);
                     EdgeId eId = (EdgeId)(id >> 32);
+#if EdgeDebug
                     Edge edge = etype.GetEdge(g, eId, vertex1, vertex2);
-                    HashSet<Edge> edges;
-                    if (!result.TryGetValue(vertex2, out edges))
-                    { // vertex not reached by any other edge
-                      edges = new HashSet<Edge>();
-                      result.Add(vertex2, edges);
-                    }
-                    edges.Add(edge);
+#else
+                    Edge edge = new Edge(g, etype, eId, vertex1, vertex2);
+#endif
+                    result.Add(vertex2, edge);
                   }
                 }
               }
@@ -563,9 +559,17 @@ namespace VelocityGraph
                 foreach (UInt64 l in edgeVertexSet)
                 {
                   VertexId vId = (int)l;
+#if VertexDebug
                   Vertex vertex2 = p1.Key.GetVertex(vId);
+#else
+                  Vertex vertex2 = new Vertex(g, p1.Key, vId);
+#endif
                   EdgeId eId = (int)(l >> 32);
+#if EdgeDebug
                   Edge edge = edgeType.GetEdge(g, eId, vertex2, vertex1);
+#else
+                  Edge edge = new Edge(g, edgeType, eId, vertex2, vertex1);
+#endif
                   yield return edge;
                 }
               }

@@ -78,7 +78,7 @@ namespace VelocityGraph
         {
           oidArray = new VelocityDbList<ElementId>();
           if (IsPersistent)
-            Session.Persist(oidArray);
+            oidArray.Persist(Session, this);
           oidArray.Add(element);
           valueIndex.Add(aValue, oidArray);
         }

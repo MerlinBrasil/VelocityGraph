@@ -22,7 +22,13 @@ namespace VelocityGraph
   {
     VertexType vertexType;
 
-    internal Vertex(Graph g, VertexType eType, VertexId eId)
+    /// <summary>
+    /// Normally you should use <see cref="VertexType.GetVertex"/> but if you need a reference to a Vertex that has no yet been created, this constructor may be used (but know what you are doing!)
+    /// </summary>
+    /// <param name="g">the owning graph</param>
+    /// <param name="eType">the type of the Vertex</param>
+    /// <param name="eId">the Id of the Vertex</param>
+    public Vertex(Graph g, VertexType eType, VertexId eId)
       : base(eId, g)
     {
       vertexType = eType;
@@ -229,11 +235,74 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="etype">Edge type identifier.</param>
     /// <param name="dir">Direction</param>
-    /// <returns>Dictionary of vertex keys with edges path to vertex</returns>
-    public Dictionary<Vertex, HashSet<Edge>> Traverse(EdgeType etype, Direction dir)
+    /// <returns>Dictionary of vertex key with edge path to vertex</returns>
+    public Dictionary<Vertex, Edge> Traverse(EdgeType etype, Direction dir)
     {
       return vertexType.Traverse(graph, this, etype, dir);
     }
+
+    struct PathInfo
+    {
+      public PathInfo(Vertex node, List<Edge> edgePath)
+      {
+        this.node = node;
+        this.edgePath = edgePath;
+      }
+      public Vertex node;
+      public List<Edge> edgePath;
+    }
+
+    /// <summary>
+    /// Traverses graph from this Vertex to a target Vertex using Breadth-first search like in Dijkstra's algorithm
+    /// </summary>
+    /// <param name="toVertex">the goal Vertex</param>
+    /// <param name="et">the type of edges to follow</param>
+    /// <param name="maxHops">maximum number of hops between this Vertex and to Vertex</param>
+    /// <param name="all">find or not find all paths to goal Vertex</param>
+    /// <returns>List of paths to goal Vertex</returns>
+    public List<List<Edge>> Traverse(Vertex toVertex, EdgeType et, int maxHops, bool all)
+    {
+      Queue<PathInfo> q = new Queue<PathInfo>();
+      SortedSet<int> visited = new SortedSet<int>();
+
+      visited.Add(VertexId);
+      Edge edge;
+      List<Edge> path = new List<Edge>(10);
+      List<List<Edge>> resultPaths = new List<List<Edge>>();
+
+      PathInfo pathInfo = new PathInfo(this, path);
+      q.Enqueue(pathInfo);
+      while (q.Count > 0)
+      {
+        pathInfo = q.Dequeue();
+        Dictionary<Vertex, Edge> friends = pathInfo.node.Traverse(et, Direction.Out);
+        if (friends.TryGetValue(toVertex, out edge))
+        {
+          //Console.WriteLine(this + " and " + toVertex + " have a friendship link");
+          List<Edge> edgePath = pathInfo.edgePath;
+          edgePath.Add(edge);
+          resultPaths.Add(edgePath);
+          if (!all)
+            return resultPaths;
+        }
+        if (pathInfo.edgePath.Count < maxHops)
+          foreach (KeyValuePair<Vertex, Edge> v in friends)
+          {
+            if (visited.Contains(v.Key.VertexId) == false)
+            {
+              visited.Add(v.Key.VertexId);
+              path = new List<Edge>(pathInfo.edgePath);
+              path.Add(v.Value);
+              pathInfo = new PathInfo(v.Key, path);
+              q.Enqueue(pathInfo);
+            }
+          }
+      }
+      //if (all && resultPaths.Count == 0)
+      //  Console.WriteLine(this + " and " + toVertex + " may not be connected by indirect frienship");
+      return resultPaths;
+    }
+
 
     public IVertexQuery Query()
     { // TO DO - Optimize
@@ -296,6 +365,11 @@ namespace VelocityGraph
       if (pt == null)
         pt = vertexType.graph.NewVertexProperty(vertexType, key, DataType.Object, PropertyKind.Indexed);
       vertexType.SetPropertyValue(VertexId, pt, value);
+    }
+
+    public override string ToString()
+    {
+      return "Vertex: " + VertexId;
     }
   }
 }
