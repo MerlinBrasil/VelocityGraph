@@ -17,6 +17,7 @@ using Frontenac.Blueprints;
 using Frontenac.Blueprints.Util;
 using System.Globalization;
 using VelocityDb.Collection;
+using System.IO;
 
 namespace VelocityGraph
 {
@@ -59,14 +60,12 @@ namespace VelocityGraph
   }
 
   [Serializable]
-  public class Graph : OptimizedPersistable, IGraph
+  public partial class Graph : OptimizedPersistable, IGraph
   {
     BTreeMap<string, VertexType> stringToVertexType;
     internal VertexType[] vertexType;
     BTreeMap<string, EdgeType> stringToEdgeType;
     internal EdgeType[] edgeType;
-    //BTreeMap<string, EdgeType> stringToRestrictedEdgeType;
-    //internal EdgeType[] restrictedEdgeType;
     int vertexTypeCt;
     int edgeTypeCt;
     internal PropertyType[] propertyType;
@@ -125,18 +124,6 @@ namespace VelocityGraph
       NewVertexType("default");
       NewEdgeType("default", true); // not sure if we need "directed" or not as edge type parameter ???
     }
-
-  /*  public void Dispose()
-    {
-      // not sure what can be done here, Session may be active with something else
-      if (session != null)
-      {
-        session.Commit();
-        session.Dispose(); // this is not safe to do but in order for tests to pass as as, this is required for now
-        session = null;
-      }
-      GC.SuppressFinalize(this);
-    }*/
 
     public static Graph Open(SessionBase session, int graphInstance = 0)
     {
@@ -735,14 +722,27 @@ namespace VelocityGraph
       throw new NotImplementedException();
     }
 
+    public static void DeployInternalTypes(SessionBase session, string outputDirectory)
+    {
+        if (!Directory.Exists(outputDirectory))
+            Directory.CreateDirectory(outputDirectory);
+        session.DeployGenerateReaderWriter(typeof(Graph), outputDirectory);
+        session.DeployGenerateReaderWriter(typeof(PropertyType), outputDirectory);
+        session.DeployGenerateReaderWriter(typeof(VertexType), outputDirectory);
+        session.DeployGenerateReaderWriter(typeof(EdgeType), outputDirectory);
+        session.DeployGenerateReaderWriter(typeof(BTreeBase<VertexId, VertexId>), outputDirectory);
+        session.DeployGenerateReaderWriter(typeof(BTreeSet<VertexId>), outputDirectory);
+    }
+
     public override UInt64 Persist(Placement place, SessionBase session, bool persistRefs = true, bool disableFlush = false, Queue<IOptimizedPersistable> toPersist = null)
     {
       if (IsPersistent)
         return Id;
+      session.RegisterClass(typeof(Graph));
       session.RegisterClass(typeof(PropertyType));
       session.RegisterClass(typeof(VertexType));
       session.RegisterClass(typeof(EdgeType));
-      session.RegisterClass(typeof(BTreeSet<VertexId>));
+      session.RegisterClass(typeof(BTreeSet<Range<VertexId>>));
       session.RegisterClass(typeof(BTreeSet<EdgeType>));
       session.RegisterClass(typeof(BTreeSet<EdgeIdVertexId>));
       session.RegisterClass(typeof(BTreeMap<EdgeId, VelocityDbList<ElementId>>));
@@ -761,5 +761,7 @@ namespace VelocityGraph
       session.RegisterClass(typeof(PropertyTypeT<object>));
       return base.Persist(place, session, persistRefs, disableFlush, toPersist);
     }
+
+
   }
 }

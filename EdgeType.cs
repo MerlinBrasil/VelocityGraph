@@ -12,19 +12,20 @@ using TypeId = System.Int32;
 using VelocityDb.Collection.BTree;
 using Frontenac.Blueprints;
 using Frontenac.Blueprints.Util;
+using VelocityDb.Collection;
 
 namespace VelocityGraph
 {
   [Serializable]
-  public class EdgeType : OptimizedPersistable, IComparable<EdgeType>, IEqualityComparer<EdgeType>
+  public partial class EdgeType : OptimizedPersistable, IComparable<EdgeType>, IEqualityComparer<EdgeType>
   {
     internal Graph graph;
     string typeName;
     TypeId typeId;
+    VelocityDbList<Range<EdgeId>> edgeRanges;
     internal BTreeMap<EdgeId, VertexId[]> edges;
     BTreeMap<string, PropertyType> stringToPropertyType;
     bool directed;
-    ElementId edgeCt;
     VertexType headType;
     VertexType tailType;
 
@@ -39,7 +40,7 @@ namespace VelocityGraph
       typeName = aTypeName;
       edges = new BTreeMap<EdgeId, VertexId[]>(null, graph.Session);
       stringToPropertyType = new BTreeMap<string, PropertyType>(null, graph.Session);
-      edgeCt = 0;
+      edgeRanges = new VelocityDbList<Range<EdgeId>>();
       this.tailType = tailType;
       this.headType = headType;
     }
@@ -233,12 +234,66 @@ namespace VelocityGraph
       return aType;
     }
 
+    EdgeId NewEdgeId(Graph g)
+    {
+      Range<EdgeId> range;
+      EdgeId eId = 1;
+      switch (edgeRanges.Count)
+      {
+        case 0:
+          range = new Range<EdgeId>(1, 1);
+          edgeRanges.Add(range);
+          break;
+        case 1:
+          range = edgeRanges.First();
+
+          if (range.Min == 1)
+          {
+            eId = range.Max + 1;
+            range = new Range<EdgeId>(1, eId);
+          }
+          else
+          {
+            eId = range.Min - 1;
+            range = new Range<EdgeId>(eId, range.Max);
+          }
+          edgeRanges[0] = range;
+          break;
+        default:
+          {
+            range = edgeRanges.First();
+            if (range.Min > 1)
+            {
+              eId = range.Min - 1;
+              range = new Range<VertexId>(eId, range.Max);
+            }
+            else
+            {
+              Range<VertexId> nextRange = edgeRanges[1];
+              if (range.Max + 2 == nextRange.Min)
+              {
+                edgeRanges.Remove(range);
+                eId = range.Max + 1;
+                range = new Range<VertexId>(range.Min, nextRange.Max);
+              }
+              else
+              {
+                range = new Range<VertexId>(range.Min, range.Max + 1);
+                eId = range.Max + 1;
+              }
+              edgeRanges.Add(range);
+            }
+          }
+          break;
+      }
+      return eId;
+    }
+
     public Edge NewEdge(Graph g, Vertex tail, Vertex head, SessionBase session)
     {
-      Update();
-     // lock (edges)
-        edges.Add(++edgeCt, new ElementId[] { head.VertexType.TypeId, head.VertexId, tail.VertexType.TypeId, tail.VertexId });
-      Edge edge = new Edge(g, this, edgeCt, head, tail);
+      EdgeId eId = NewEdgeId(g);
+      edges.Add(eId, new ElementId[] { head.VertexType.TypeId, head.VertexId, tail.VertexType.TypeId, tail.VertexId });
+      Edge edge = new Edge(g, this, eId, head, tail);
       if (directed)
       {
         tail.VertexType.NewTailToHeadEdge(this, edge, tail, head, session);
@@ -249,7 +304,6 @@ namespace VelocityGraph
 
     public void RemoveEdge(Edge edge)
     {
-      Update();
       edges.Remove(edge.EdgeId);
       if (directed)
       {
@@ -258,6 +312,27 @@ namespace VelocityGraph
       }
       foreach (string key in GetPropertyKeys())
         edge.RemoveProperty(key);
+      Range<EdgeId> range = new Range<EdgeId>(edge.EdgeId, edge.EdgeId);
+      bool isEqual;
+      int pos = edgeRanges.BinarySearch(range, out isEqual);
+      if (pos >= 0)
+      {
+        range = edgeRanges[pos];
+        if (range.Min == edge.EdgeId)
+        {
+          if (range.Max == edge.EdgeId)
+            edgeRanges.RemoveAt(pos);
+          else
+            edgeRanges[pos] = new Range<EdgeId>(range.Min + 1, range.Max);
+        }
+        else if (range.Max == edge.EdgeId)
+          edgeRanges[pos] = new Range<EdgeId>(range.Min, range.Max + 1);
+        else
+        {
+          edgeRanges[pos] = new Range<EdgeId>(range.Min, edge.EdgeId - 1);
+          edgeRanges.Insert(pos + 1, new Range<EdgeId>(edge.EdgeId + 1, range.Max));
+        }
+      }
     }
 
     public Edge NewEdgeX(PropertyType[] propertyType, PropertyType tailAttr, object tailV, PropertyType headAttr, object headV, SessionBase session)
