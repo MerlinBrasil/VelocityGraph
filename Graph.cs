@@ -341,10 +341,10 @@ namespace VelocityGraph
     /// Creates a new edge type.
     /// </summary>
     /// <param name="name">Unique name for the new edge type.</param>
-    /// <param name="directed">If true, this creates a directed edge type, otherwise this creates a undirected edge type.</param>
+    /// <param name="biderectional">If true, this creates a biderectional edge type, otherwise this creates a unidirectional edge type.</param>
     /// <returns>Unique edge type.</returns>
     /// <returns>a new edge type</returns>
-    public EdgeType NewEdgeType(string name, bool directed)
+    public EdgeType NewEdgeType(string name, bool biderectional)
     {
       EdgeType aType;
       if (stringToEdgeType.TryGetValue(name, out aType) == false)
@@ -352,7 +352,7 @@ namespace VelocityGraph
         int pos = edgeTypeCt;
         Update();
         Array.Resize(ref edgeType, ++edgeTypeCt);
-        aType = new EdgeType(pos, name, null, null, directed, this);
+        aType = new EdgeType(pos, name, null, null, biderectional, this);
         if (IsPersistent)
           Session.Persist(aType);
         edgeType[pos] = aType;
@@ -365,12 +365,12 @@ namespace VelocityGraph
     /// Creates a new edge type.
     /// </summary>
     /// <param name="name">Unique name for the new edge type.</param>
-    /// <param name="directed">If true, this creates a directed edge type, otherwise this creates a undirected edge type.</param>
+    /// <param name="biderectional">If true, this creates a biderectional edge type, otherwise this creates a unidirectional edge type.</param>
     /// <returns>Unique edge type.</returns>
     /// <param name="headType">a fixed head VertexType</param>
     /// <param name="tailType">a fixed tail VertexType</param>
     /// <returns>a new edge type</returns>
-    public EdgeType NewEdgeType(string name, bool directed, VertexType headType, VertexType tailType)
+    public EdgeType NewEdgeType(string name, bool biderectional, VertexType headType, VertexType tailType)
     {
       EdgeType aType;
       if (stringToEdgeType.TryGetValue(name, out aType) == false)
@@ -378,7 +378,7 @@ namespace VelocityGraph
         int pos = edgeTypeCt;
         Update();
         Array.Resize(ref edgeType, ++edgeTypeCt);
-        aType = new EdgeType(pos, name, tailType, headType, directed, this);
+        aType = new EdgeType(pos, name, tailType, headType, biderectional, this);
         if (IsPersistent)
           Session.Persist(aType);
         edgeType[pos] = aType;

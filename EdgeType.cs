@@ -25,14 +25,14 @@ namespace VelocityGraph
     VelocityDbList<Range<EdgeId>> edgeRanges;
     internal BTreeMap<EdgeId, VertexId[]> edges;
     BTreeMap<string, PropertyType> stringToPropertyType;
-    bool directed;
+    bool birectional;
     VertexType headType;
     VertexType tailType;
 
-    public EdgeType(TypeId aTypeId, string aTypeName, VertexType tailType, VertexType headType, bool directed, Graph graph)
+    public EdgeType(TypeId aTypeId, string aTypeName, VertexType tailType, VertexType headType, bool birectional, Graph graph)
     {
       this.graph = graph;
-      this.directed = directed;
+      this.birectional = birectional;
       //   if (directed == false)
       //     edgeHeadToTail = new Dictionary<long, long>();
       //   edgeTailToHead = new Dictionary<long, long>();
@@ -69,7 +69,7 @@ namespace VelocityGraph
     {
       get
       {
-        return directed;
+        return birectional;
       }
     }
 
@@ -294,22 +294,26 @@ namespace VelocityGraph
       EdgeId eId = NewEdgeId(g);
       edges.Add(eId, new ElementId[] { head.VertexType.TypeId, head.VertexId, tail.VertexType.TypeId, tail.VertexId });
       Edge edge = new Edge(g, this, eId, head, tail);
-      if (directed)
+      if (birectional)
       {
         tail.VertexType.NewTailToHeadEdge(this, edge, tail, head, session);
         head.VertexType.NewHeadToTailEdge(this, edge, tail, head, session);
       }
+      else
+        tail.VertexType.NewTailToHeadEdge(this, edge, tail, head, session);
       return edge;
     }
 
     public void RemoveEdge(Edge edge)
     {
       edges.Remove(edge.EdgeId);
-      if (directed)
+      if (birectional)
       {
         edge.Tail.VertexType.RemoveTailToHeadEdge(edge);
         edge.Head.VertexType.RemoveHeadToTailEdge(edge);
       }
+      else
+        edge.Tail.VertexType.RemoveTailToHeadEdge(edge);
       foreach (string key in GetPropertyKeys())
         edge.RemoveProperty(key);
       Range<EdgeId> range = new Range<EdgeId>(edge.EdgeId, edge.EdgeId);
