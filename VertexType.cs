@@ -723,8 +723,109 @@ namespace VelocityGraph
       }
       return numberOfEdges;
     }
+    
+    /// <summary>
+    /// Get the top vertices with the most number of edges of the given edge type
+    /// </summary>
+    /// <param name="etype">The edge type to look for</param>
+    /// <param name="howMany">How many top ones to collect</param>
+    /// <param name="dir">What end of edges to look at</param>
+    /// <returns></returns>
+    public VertexId[] GetTopNumberOfEdges(EdgeType etype, int howMany, Direction dir)
+    {
+      VertexId[] top = new VertexId[howMany];
+      int[] topCt = new int[howMany];
+      int lastIndex = topCt.Length - 1;
+      BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
+      switch (dir)
+      {
+        case Direction.Out:
+          if (tailToHeadEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                int pos = Array.BinarySearch(topCt, p2.Value.Count);
+                if (pos < 0) 
+                  pos = ~pos;
+                if (pos > 0)
+                {
+                  --pos;
+                  Array.Copy(topCt, 1, topCt, 0, pos);
+                  Array.Copy(top, 1, top, 0, pos);
+                }
+                if (topCt[pos] != p2.Value.Count)
+                {
+                  topCt[pos] = p2.Value.Count;
+                  top[pos] = p2.Key;
+                }
+              }
+          break;
+        case Direction.In:
+          if (headToTailEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                int pos = Array.BinarySearch(topCt, p2.Value.Count);
+                if (pos < 0)
+                  pos = ~pos;
+                if (pos > 0)
+                {
+                  --pos;
+                  Array.Copy(topCt, 1, topCt, 0, pos);
+                  Array.Copy(top, 1, top, 0, pos);
+                }
+                if (topCt[pos] != p2.Value.Count)
+                {
+                  topCt[pos] = p2.Value.Count;
+                  top[pos] = p2.Key;
+                }
+              }
+          break;
+        case Direction.Both:
+          if (tailToHeadEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                int pos = Array.BinarySearch(topCt, p2.Value.Count);
+                if (pos < 0)
+                  pos = ~pos;
+                if (pos > 0)
+                {
+                  --pos;
+                  Array.Copy(topCt, 1, topCt, 0, pos);
+                  Array.Copy(top, 1, top, 0, pos);
+                }
+                if (topCt[pos] != p2.Value.Count)
+                {
+                  topCt[pos] = p2.Value.Count;
+                  top[pos] = p2.Key;
+                }
+              }
+          if (headToTailEdges.TryGetValue(etype, out map))
+            foreach (var p1 in map)
+              foreach (var p2 in p1.Value)
+              {
+                int pos = Array.BinarySearch(topCt, p2.Value.Count);
+                if (pos < 0)
+                  pos = ~pos;
+                if (pos > 0)
+                {
+                  --pos;
+                  Array.Copy(topCt, 1, topCt, 0, pos);
+                  Array.Copy(top, 1, top, 0, pos);
+                }
+                if (topCt[pos] != p2.Value.Count)
+                {
+                  topCt[pos] = p2.Value.Count;
+                  top[pos] = p2.Key;
+                }
+              }
+          break;
+      }
+      return top;
+    }
 
-    public long GetNumberOfEdges(EdgeType etype, Vertex vertex, Direction dir)
+    public long GetNumberOfEdges(EdgeType etype, VertexId vertexId, Direction dir)
     {
       BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
       long numberOfEdges = 0;
@@ -735,7 +836,7 @@ namespace VelocityGraph
             foreach (var p1 in map)
             {
               BTreeSet<EdgeIdVertexId> edgeVertexSet;
-              if (p1.Value.TryGetValue(vertex.VertexId, out edgeVertexSet))
+              if (p1.Value.TryGetValue(vertexId, out edgeVertexSet))
                 numberOfEdges += edgeVertexSet.Count;
             }
           break;
@@ -744,7 +845,7 @@ namespace VelocityGraph
             foreach (var p1 in map)
             {
               BTreeSet<EdgeIdVertexId> edgeVertexSet;
-              if (p1.Value.TryGetValue(vertex.VertexId, out edgeVertexSet))
+              if (p1.Value.TryGetValue(vertexId, out edgeVertexSet))
                 numberOfEdges += edgeVertexSet.Count;
             }
           break;
@@ -753,14 +854,14 @@ namespace VelocityGraph
             foreach (var p1 in map)
             {
               BTreeSet<EdgeIdVertexId> edgeVertexSet;
-              if (p1.Value.TryGetValue(vertex.VertexId, out edgeVertexSet))
+              if (p1.Value.TryGetValue(vertexId, out edgeVertexSet))
                 numberOfEdges += edgeVertexSet.Count;
             }
           if (headToTailEdges.TryGetValue(etype, out map))
             foreach (var p1 in map)
             {
               BTreeSet<EdgeIdVertexId> edgeVertexSet;
-              if (p1.Value.TryGetValue(vertex.VertexId, out edgeVertexSet))
+              if (p1.Value.TryGetValue(vertexId, out edgeVertexSet))
                 numberOfEdges += edgeVertexSet.Count;
             }
           break;
@@ -768,13 +869,18 @@ namespace VelocityGraph
       return numberOfEdges;
     }
 
-    public Vertex[] GetVertices(Graph g)
+    public IEnumerable<Vertex> GetVertices(Graph g)
     {
-      List<Vertex> vertexList = new List<Vertex>(10000);
       foreach (Range<VertexId> range in vertecis)
         foreach (VertexId vId in Enumerable.Range((int) range.Min, (int) range.Max - range.Min + 1))
-          vertexList.Add(new Vertex(graph, this, vId));
-      return vertexList.ToArray();
+          yield return new Vertex(graph, this, vId);
+    }
+
+    public IEnumerable<VertexId> GetVerticeIds(Graph g)
+    {
+      foreach (Range<VertexId> range in vertecis)
+        foreach (VertexId vId in Enumerable.Range((int)range.Min, (int)range.Max - range.Min + 1))
+          yield return vId;
     }
 
     public IEnumerable<IVertex> GetVertices(Graph g, EdgeType etype, Vertex vertex1, Direction dir)
