@@ -379,5 +379,10 @@ namespace VelocityGraph
     {
       property.SetPropertyValue(elementId, v);
     }
+
+    public override string ToString()
+    {
+      return "EdgeType: " + typeName;
+    }
   }
 }

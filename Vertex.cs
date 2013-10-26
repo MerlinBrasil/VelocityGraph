@@ -34,6 +34,12 @@ namespace VelocityGraph
       vertexType = eType;
     }
 
+    /// <summary>
+    /// Add an edge from this Vertex to inVertex of edge type looked up from label, if edge type does not yet exist it is created.
+    /// </summary>
+    /// <param name="label">The type of edge to create</param>
+    /// <param name="inVertex">The head of the new edge</param>
+    /// <returns>the new edge</returns>
     public IEdge AddEdge(string label, IVertex inVertex)
     {
       EdgeType edgeType = graph.FindEdgeType(label);
@@ -369,7 +375,7 @@ namespace VelocityGraph
 
     public override string ToString()
     {
-      return "Vertex: " + VertexId;
+      return "Vertex: " + VertexId + " " + vertexType.TypeName;
     }
   }
 }

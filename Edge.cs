@@ -222,7 +222,7 @@ namespace VelocityGraph
 
     public override string ToString()
     {
-      return "Edge: " + EdgeId;
+      return "Edge: " + EdgeId + " " + edgeType.TypeName;
     }
   }
 }

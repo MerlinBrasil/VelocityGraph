@@ -792,7 +792,7 @@ namespace VelocityGraph
                 foreach (long l in set)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   yield return vertex2;
                 }
               }
@@ -807,7 +807,7 @@ namespace VelocityGraph
                 foreach (long l in set)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   yield return vertex2;
                 }
               }
@@ -822,7 +822,7 @@ namespace VelocityGraph
                 foreach (long l in set)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   yield return vertex2;
                 }
               }
@@ -835,7 +835,7 @@ namespace VelocityGraph
                 foreach (long l in set)
                 {
                   VertexId vId = (int)l;
-                  Vertex vertex2 = GetVertex(vId);
+                  Vertex vertex2 = p1.Key.GetVertex(vId);
                   yield return vertex2;
                 }
               }
@@ -973,6 +973,19 @@ namespace VelocityGraph
     public void SetPropertyValue(VertexId vertexId, PropertyType propertyType, object v)
     {
       propertyType.SetPropertyValue(vertexId, v);
+    }
+
+    public string TypeName
+    {
+      get
+      {
+        return typeName;
+      }
+    }
+
+    public override string ToString()
+    {
+      return "VertexType: " + typeName;
     }
   }
 }
