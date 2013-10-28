@@ -730,12 +730,11 @@ namespace VelocityGraph
     /// <param name="etype">The edge type to look for</param>
     /// <param name="howMany">How many top ones to collect</param>
     /// <param name="dir">What end of edges to look at</param>
-    /// <returns></returns>
-    public VertexId[] GetTopNumberOfEdges(EdgeType etype, int howMany, Direction dir)
+    /// <returns>Array of Vertices with the most edges of the given edge type</returns>
+    public Vertex[] GetTopNumberOfEdges(EdgeType etype, int howMany, Direction dir)
     {
-      VertexId[] top = new VertexId[howMany];
+      Vertex[] top = new Vertex[howMany];
       int[] topCt = new int[howMany];
-      int lastIndex = topCt.Length - 1;
       BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>> map;
       switch (dir)
       {
@@ -744,19 +743,22 @@ namespace VelocityGraph
             foreach (var p1 in map)
               foreach (var p2 in p1.Value)
               {
-                int pos = Array.BinarySearch(topCt, p2.Value.Count);
-                if (pos < 0) 
-                  pos = ~pos;
-                if (pos > 0)
+                if (topCt[0] == 0 || p2.Value.Count > 0)
                 {
-                  --pos;
-                  Array.Copy(topCt, 1, topCt, 0, pos);
-                  Array.Copy(top, 1, top, 0, pos);
-                }
-                if (topCt[pos] != p2.Value.Count)
-                {
-                  topCt[pos] = p2.Value.Count;
-                  top[pos] = p2.Key;
+                  int pos = Array.BinarySearch(topCt, p2.Value.Count);
+                  if (pos < 0)
+                    pos = ~pos;
+                  if (pos > 0)
+                  {
+                    --pos;
+                    Array.Copy(topCt, 1, topCt, 0, pos);
+                    Array.Copy(top, 1, top, 0, pos);
+                  }
+                  if (topCt[0] < p2.Value.Count)
+                  {
+                    topCt[pos] = p2.Value.Count;
+                    top[pos] = new Vertex(graph, this, p2.Key);
+                  }
                 }
               }
           break;
@@ -765,19 +767,22 @@ namespace VelocityGraph
             foreach (var p1 in map)
               foreach (var p2 in p1.Value)
               {
-                int pos = Array.BinarySearch(topCt, p2.Value.Count);
-                if (pos < 0)
-                  pos = ~pos;
-                if (pos > 0)
+                if (topCt[0] == 0 || p2.Value.Count > 0)
                 {
-                  --pos;
-                  Array.Copy(topCt, 1, topCt, 0, pos);
-                  Array.Copy(top, 1, top, 0, pos);
-                }
-                if (topCt[pos] != p2.Value.Count)
-                {
-                  topCt[pos] = p2.Value.Count;
-                  top[pos] = p2.Key;
+                  int pos = Array.BinarySearch(topCt, p2.Value.Count);
+                  if (pos < 0)
+                    pos = ~pos;
+                  if (pos > 0)
+                  {
+                    --pos;
+                    Array.Copy(topCt, 1, topCt, 0, pos);
+                    Array.Copy(top, 1, top, 0, pos);
+                  }
+                  if (topCt[0] < p2.Value.Count)
+                  {
+                    topCt[pos] = p2.Value.Count;
+                    top[pos] = new Vertex(graph, p1.Key, p2.Key);
+                  }
                 }
               }
           break;
@@ -786,38 +791,44 @@ namespace VelocityGraph
             foreach (var p1 in map)
               foreach (var p2 in p1.Value)
               {
-                int pos = Array.BinarySearch(topCt, p2.Value.Count);
-                if (pos < 0)
-                  pos = ~pos;
-                if (pos > 0)
+                if (topCt[0] == 0 || p2.Value.Count > 0)
                 {
-                  --pos;
-                  Array.Copy(topCt, 1, topCt, 0, pos);
-                  Array.Copy(top, 1, top, 0, pos);
-                }
-                if (topCt[pos] != p2.Value.Count)
-                {
-                  topCt[pos] = p2.Value.Count;
-                  top[pos] = p2.Key;
+                  int pos = Array.BinarySearch(topCt, p2.Value.Count);
+                  if (pos < 0)
+                    pos = ~pos;
+                  if (pos > 0)
+                  {
+                    --pos;
+                    Array.Copy(topCt, 1, topCt, 0, pos);
+                    Array.Copy(top, 1, top, 0, pos);
+                  }
+                  if (topCt[0] < p2.Value.Count)
+                  {
+                    topCt[pos] = p2.Value.Count;
+                    top[pos] = new Vertex(graph, p1.Key, p2.Key);
+                  }
                 }
               }
           if (headToTailEdges.TryGetValue(etype, out map))
             foreach (var p1 in map)
               foreach (var p2 in p1.Value)
               {
-                int pos = Array.BinarySearch(topCt, p2.Value.Count);
-                if (pos < 0)
-                  pos = ~pos;
-                if (pos > 0)
+                if (topCt[0] == 0 || p2.Value.Count > 0)
                 {
-                  --pos;
-                  Array.Copy(topCt, 1, topCt, 0, pos);
-                  Array.Copy(top, 1, top, 0, pos);
-                }
-                if (topCt[pos] != p2.Value.Count)
-                {
-                  topCt[pos] = p2.Value.Count;
-                  top[pos] = p2.Key;
+                  int pos = Array.BinarySearch(topCt, p2.Value.Count);
+                  if (pos < 0)
+                    pos = ~pos;
+                  if (pos > 0)
+                  {
+                    --pos;
+                    Array.Copy(topCt, 1, topCt, 0, pos);
+                    Array.Copy(top, 1, top, 0, pos);
+                  }
+                  if (topCt[0] < p2.Value.Count)
+                  {
+                    topCt[pos] = p2.Value.Count;
+                    top[pos] = new Vertex(graph, p1.Key, p2.Key);
+                  }
                 }
               }
           break;
