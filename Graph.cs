@@ -128,7 +128,7 @@ namespace VelocityGraph
     public static Graph Open(SessionBase session, int graphInstance = 0)
     {
       UInt32 dbNum = session.DatabaseNumberOf(typeof(Graph));
-      Database db = session.OpenDatabase(dbNum, true, false);
+      Database db = session.OpenDatabase(dbNum, false, false);
       if (db != null)
       {
         int ct = 0;
@@ -367,10 +367,10 @@ namespace VelocityGraph
     /// <param name="name">Unique name for the new edge type.</param>
     /// <param name="biderectional">If true, this creates a biderectional edge type, otherwise this creates a unidirectional edge type.</param>
     /// <returns>Unique edge type.</returns>
-    /// <param name="headType">a fixed head VertexType</param>
     /// <param name="tailType">a fixed tail VertexType</param>
+    /// <param name="headType">a fixed head VertexType</param>
     /// <returns>a new edge type</returns>
-    public EdgeType NewEdgeType(string name, bool biderectional, VertexType headType, VertexType tailType)
+    public EdgeType NewEdgeType(string name, bool biderectional, VertexType tailType, VertexType headType)
     {
       EdgeType aType;
       if (stringToEdgeType.TryGetValue(name, out aType) == false)
@@ -730,8 +730,8 @@ namespace VelocityGraph
         session.DeployGenerateReaderWriter(typeof(PropertyType), outputDirectory);
         session.DeployGenerateReaderWriter(typeof(VertexType), outputDirectory);
         session.DeployGenerateReaderWriter(typeof(EdgeType), outputDirectory);
-        session.DeployGenerateReaderWriter(typeof(BTreeBase<VertexId, VertexId>), outputDirectory);
-        session.DeployGenerateReaderWriter(typeof(BTreeSet<VertexId>), outputDirectory);
+        //session.DeployGenerateReaderWriter(typeof(BTreeBase<VertexId, VertexId>), outputDirectory);
+        //session.DeployGenerateReaderWriter(typeof(BTreeSet<VertexId>), outputDirectory);
     }
 
     public override UInt64 Persist(Placement place, SessionBase session, bool persistRefs = true, bool disableFlush = false, Queue<IOptimizedPersistable> toPersist = null)
@@ -761,7 +761,5 @@ namespace VelocityGraph
       session.RegisterClass(typeof(PropertyTypeT<object>));
       return base.Persist(place, session, persistRefs, disableFlush, toPersist);
     }
-
-
   }
 }

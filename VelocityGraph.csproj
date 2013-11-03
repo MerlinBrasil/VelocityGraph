@@ -63,6 +63,8 @@
     <Compile Include="EdgeDoesNotExistException.cs" />
     <Compile Include="EdgeType.cs" />
     <Compile Include="Element.cs" />
+    <Compile Include="InvalidHeadVertexTypeException.cs" />
+    <Compile Include="InvalidTailVertexTypeException.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

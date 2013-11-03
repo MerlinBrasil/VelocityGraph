@@ -106,12 +106,12 @@ namespace VelocityGraph
         Vertex head = vt1.GetVertex(m.Value[1]);
         VertexType vt2 = g.vertexType[m.Value[2]];
         Vertex tail = vt2.GetVertex(m.Value[3]);
-        edgeAray[i++] = GetEdge(g, m.Key, head, tail);
+        edgeAray[i++] = GetEdge(g, m.Key, tail, head);
       }
       return edgeAray;
     }
 
-    public Edge GetEdge(Graph g, EdgeId edgeId, Vertex headVertex, Vertex tailVertex)
+    public Edge GetEdge(Graph g, EdgeId edgeId, Vertex tailVertex, Vertex headVertex)
     {
       if (edges.Contains(edgeId))
       {
@@ -134,6 +134,17 @@ namespace VelocityGraph
       foreach (var pair in stringToPropertyType)
       {
         yield return pair.Key;
+      }
+    }
+
+    /// <summary>
+    /// Gets the Head VertexType of the edge (might not be set)
+    /// </summary>
+    public VertexType HeadType
+    {
+      get
+      {
+        return headType;
       }
     }
 
@@ -291,6 +302,10 @@ namespace VelocityGraph
 
     public Edge NewEdge(Graph g, Vertex tail, Vertex head, SessionBase session)
     {
+      if (tailType != null && tail.VertexType != tailType)
+        throw new InvalidTailVertexTypeException();
+      if (headType != null && head.VertexType != headType)
+        throw new InvalidHeadVertexTypeException();
       EdgeId eId = NewEdgeId(g);
       edges.Add(eId, new ElementId[] { head.VertexType.TypeId, head.VertexId, tail.VertexType.TypeId, tail.VertexId });
       Edge edge = new Edge(g, this, eId, head, tail);
@@ -321,6 +336,8 @@ namespace VelocityGraph
       int pos = edgeRanges.BinarySearch(range, out isEqual);
       if (pos >= 0)
       {
+        if (pos == edgeRanges.Count || (pos > 0 && edgeRanges[pos].Min > edge.EdgeId))
+          --pos;
         range = edgeRanges[pos];
         if (range.Min == edge.EdgeId)
         {
@@ -378,6 +395,17 @@ namespace VelocityGraph
     public void SetPropertyValue(ElementId elementId, PropertyType property, object v)
     {
       property.SetPropertyValue(elementId, v);
+    }
+
+    /// <summary>
+    /// Gets the Tail VertexType of the edge (might not be set)
+    /// </summary>
+    public VertexType TailType
+    {
+      get
+      {
+        return tailType;
+      }
     }
 
     public override string ToString()
