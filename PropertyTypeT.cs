@@ -80,7 +80,7 @@ namespace VelocityGraph
           if (IsPersistent)
             oidArray.Persist(Session, this);
           oidArray.Add(element);
-          valueIndex.Add(aValue, oidArray);
+          valueIndex.AddFast(aValue, oidArray);
         }
         else
         {
@@ -90,7 +90,7 @@ namespace VelocityGraph
         }
       }
       else if (valueIndexUnique != null)
-        valueIndexUnique.Add(aValue, element);
+        valueIndexUnique.AddFast(aValue, element);
     }
 
     public Vertex GetPropertyVertex(T value, Graph g)

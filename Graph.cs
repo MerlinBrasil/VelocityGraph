@@ -89,7 +89,7 @@ namespace VelocityGraph
       features.SupportsMapProperty = true;
       features.SupportsStringProperty = true;
 
-      features.IgnoresSuppliedIds = true;
+      features.IgnoresSuppliedIds = false;
       features.IsPersistent = true;
       features.IsRdfModel = false;
       features.IsWrapper = false;
@@ -180,15 +180,17 @@ namespace VelocityGraph
     public virtual IVertex AddVertex(object id)
     {
       VertexType vt;
+      VertexId vId = 0;
       if (id != null && id is UInt64)
       {
         UInt64 fullId = (UInt64)id;
+        vId = (VertexId)id;
         VertexTypeId vertexTypeId = (VertexTypeId)(fullId >> 32);
         vt = vertexType[vertexTypeId];
       }
       else
         vt = vertexType[0];
-      return NewVertex(vt);
+      return vt.NewVertex(this, vId);
     }
 
     /// <summary>
@@ -329,10 +331,8 @@ namespace VelocityGraph
         Update();
         Array.Resize(ref vertexType, (int)++vertexTypeCt);
         aType = new VertexType(pos, name, this);
-        if (IsPersistent)
-          Session.Persist(aType);
         vertexType[pos] = aType;
-        stringToVertexType.Add(name, aType);
+        stringToVertexType.AddFast(name, aType);
       }
       return aType;
     }
@@ -353,10 +353,8 @@ namespace VelocityGraph
         Update();
         Array.Resize(ref edgeType, ++edgeTypeCt);
         aType = new EdgeType(pos, name, null, null, biderectional, this);
-        if (IsPersistent)
-          Session.Persist(aType);
         edgeType[pos] = aType;
-        stringToEdgeType.Add(name, aType);
+        stringToEdgeType.AddFast(name, aType);
       }
       return aType;
     }
@@ -379,12 +377,20 @@ namespace VelocityGraph
         Update();
         Array.Resize(ref edgeType, ++edgeTypeCt);
         aType = new EdgeType(pos, name, tailType, headType, biderectional, this);
-        if (IsPersistent)
-          Session.Persist(aType);
         edgeType[pos] = aType;
-        stringToEdgeType.Add(name, aType);
+        stringToEdgeType.AddFast(name, aType);
       }
       return aType;
+    }
+
+    /// <summary>
+    /// Creates a new node instance.
+    /// </summary>
+    /// <param name="type">Node type identifier.</param>
+    /// <returns>Unique OID of the new node instance.</returns>
+    public Vertex NewVertex(VertexType vertexType)
+    {
+      return vertexType.NewVertex(this);
     }
 
     /// <summary>
@@ -411,16 +417,6 @@ namespace VelocityGraph
     public PropertyType NewEdgeProperty(EdgeType edgeType, string name, DataType dt, PropertyKind kind)
     {
       return edgeType.NewProperty(name, dt, kind);
-    }
-
-    /// <summary>
-    /// Creates a new node instance.
-    /// </summary>
-    /// <param name="type">Node type identifier.</param>
-    /// <returns>Unique OID of the new node instance.</returns>
-    public Vertex NewVertex(VertexType vertexType)
-    {
-      return vertexType.NewVertex(this);
     }
 
     /// <summary>
@@ -488,7 +484,7 @@ namespace VelocityGraph
     /// <returns>the vertex matching</returns>
     public Vertex FindVertex(PropertyType property, object v)
     {
-      return property.GetPropertyVertex(v, this); ;
+      return property.GetPropertyVertex(v, this);
     }
 
     public long CountVertices()
@@ -549,9 +545,11 @@ namespace VelocityGraph
       return null;
     }
 
-    public void RemoveVertexType(VertexTypeId type)
+    public void RemoveVertexType(VertexType type)
     {
-      throw new NotImplementedException();
+      if (type.GetVertices(this).ElementAtOrDefault(0) != null)
+        throw new VertexTypeInUseException();
+      type.Unpersist(Session);
     }
 
     public PropertyType FindVertexProperty(VertexType vertexType, string name)
@@ -578,7 +576,7 @@ namespace VelocityGraph
       e.EdgeType.RemoveEdge(e);
     }
 
-    public void RemoveProperty(PropertyType attr)
+    public void RemovePropertyType(PropertyType attr)
     {
       throw new NotImplementedException();
     }

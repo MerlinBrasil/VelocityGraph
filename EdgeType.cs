@@ -187,10 +187,8 @@ namespace VelocityGraph
             aType = new PropertyTypeT<object>(false, this.TypeId, pos, name, kind, Session);
             break;
         }
-        if (IsPersistent)
-          Session.Persist(aType);
         graph.propertyType[pos] = aType;
-        stringToPropertyType.Add(name, aType);
+        stringToPropertyType.AddFast(name, aType);
       }
       return aType;
     }
@@ -237,10 +235,8 @@ namespace VelocityGraph
             aType = new PropertyTypeT<object>(false, this.TypeId, pos, name, kind, Session);
             break;
         }
-        if (IsPersistent)
-          Session.Persist(aType);
         graph.propertyType[pos] = aType;
-        stringToPropertyType.Add(name, aType);
+        stringToPropertyType.AddFast(name, aType);
       }
       return aType;
     }
@@ -307,7 +303,7 @@ namespace VelocityGraph
       if (headType != null && head.VertexType != headType)
         throw new InvalidHeadVertexTypeException();
       EdgeId eId = NewEdgeId(g);
-      edges.Add(eId, new ElementId[] { head.VertexType.TypeId, head.VertexId, tail.VertexType.TypeId, tail.VertexId });
+      edges.AddFast(eId, new ElementId[] { head.VertexType.TypeId, head.VertexId, tail.VertexType.TypeId, tail.VertexId });
       Edge edge = new Edge(g, this, eId, head, tail);
       if (birectional)
       {
@@ -395,6 +391,17 @@ namespace VelocityGraph
     public void SetPropertyValue(ElementId elementId, PropertyType property, object v)
     {
       property.SetPropertyValue(elementId, v);
+    }
+
+    /// <summary>
+    /// Gets the session managing this object
+    /// </summary>
+    public override SessionBase Session
+    {
+      get
+      {
+        return graph.Session != null ? graph.Session : base.Session;
+      }
     }
 
     /// <summary>

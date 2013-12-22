@@ -79,12 +79,14 @@
     <Compile Include="InvalidPropertyIdException.cs" />
     <Compile Include="InvalidTypeIdException.cs" />
     <Compile Include="NamespaceDoc.cs" />
+    <Compile Include="VertexAllreadyExistException.cs" />
     <Compile Include="VertexDoesNotExistException.cs" />
     <Compile Include="VertexType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PropertyTypeT.cs" />
     <Compile Include="PropertyType.cs" />
     <Compile Include="Graph.cs" />
+    <Compile Include="VertexTypeInUseException.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VelocityDb\VelocityDb.csproj">

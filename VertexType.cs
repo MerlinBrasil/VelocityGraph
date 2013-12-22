@@ -88,37 +88,24 @@ namespace VelocityGraph
           map = new BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>(null, session);
           innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
           set = new BTreeSet<EdgeIdVertexId>(null, session);
-          if (IsPersistent)
-          {
-            Session.Persist(map, 100);
-            Session.Persist(innerMap, 100);
-            Session.Persist(set, 1000);
-          }
-          innerMap.Add(tail.VertexId, set);
-          map.Add(head.VertexType, innerMap);
-          tailToHeadEdges.Add(edgeType, map);
-          edgeTypes.Add(edgeType);
+          innerMap.AddFast(tail.VertexId, set);
+          map.AddFast(head.VertexType, innerMap);
+          tailToHeadEdges.AddFast(edgeType, map);
+          edgeTypes.AddFast(edgeType);
         }
         else if (!map.TryGetValue(head.VertexType, out innerMap))
         {
           innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
           set = new BTreeSet<EdgeIdVertexId>(null, session);
-          if (IsPersistent)
-          {
-            Session.Persist(innerMap, 100);
-            Session.Persist(set, 1000);
-          }
-          innerMap.Add(tail.VertexId, set);
-          map.Add(head.VertexType, innerMap);
+          innerMap.AddFast(tail.VertexId, set);
+          map.AddFast(head.VertexType, innerMap);
         }
         else if (!innerMap.TryGetValue(tail.VertexId, out set))
         {
           set = new BTreeSet<EdgeIdVertexId>(null, session);
-          if (IsPersistent)
-            Session.Persist(set, 1000);
-          innerMap.Add(tail.VertexId, set);
+          innerMap.AddFast(tail.VertexId, set);
         }
-        set.Add(edgeVertexId(edge, head.VertexId));
+        set.AddFast(edgeVertexId(edge, head.VertexId));
       }
     }
 
@@ -156,91 +143,144 @@ namespace VelocityGraph
           map = new BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>(null, session);
           innerMap = new BTreeMap<EdgeId, BTreeSet<EdgeIdVertexId>>(null, session);
           set = new BTreeSet<EdgeIdVertexId>(null, session);
-          if (IsPersistent)
-          {
-            Session.Persist(map, 100);
-            Session.Persist(innerMap, 100);
-            Session.Persist(set, 1000);
-          }
-          innerMap.Add(head.VertexId, set);
-          map.Add(tail.VertexType, innerMap);
-          headToTailEdges.Add(edgeType, map);
-          edgeTypes.Add(edgeType);
+          innerMap.AddFast(head.VertexId, set);
+          map.AddFast(tail.VertexType, innerMap);
+          headToTailEdges.AddFast(edgeType, map);
+          edgeTypes.AddFast(edgeType);
         }
         else if (!map.TryGetValue(tail.VertexType, out innerMap))
         {
           innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
           set = new BTreeSet<EdgeIdVertexId>(null, session);
-          if (IsPersistent)
-          {
-            Session.Persist(innerMap, 100);
-            Session.Persist(set, 1000);
-          }
-          innerMap.Add(head.VertexId, set);
-          map.Add(tail.VertexType, innerMap);
+          innerMap.AddFast(head.VertexId, set);
+          map.AddFast(tail.VertexType, innerMap);
         }
         else if (!innerMap.TryGetValue(head.VertexId, out set))
         {
           set = new BTreeSet<EdgeIdVertexId>(null, session);
-          if (IsPersistent)
-            Session.Persist(set, 1000);
-          innerMap.Add(head.VertexId, set);
+          innerMap.AddFast(head.VertexId, set);
         }
-        set.Add(edgeVertexId(edge, tail.VertexId));
+        set.AddFast(edgeVertexId(edge, tail.VertexId));
       }
     }
 
-    public Vertex NewVertex(Graph g)
+    public Vertex NewVertex(Graph g, VertexId vId = 0)
     {
       Range<VertexId> range;
-      VertexId vId = 1;
-      switch (vertecis.Count)
+      if (vId != 0)
       {
-        case 0:
-          range = new Range<VertexId>(1, 1);
+        range = new Range<VertexId>(vId, vId);
+        if (vertecis.Count == 0)
           vertecis.Add(range);
-          break;
-        case 1:
-          range = vertecis.First();
-
-          if (range.Min == 1)
+        else
+        {
+          bool isEqual;
+          int pos = vertecis.BinarySearch(range, out isEqual);
+          if (isEqual)
+            throw new VertexAllreadyExistException("Vertex with id " + vId + " allready exist");
+          Range<VertexId> existingRange = vertecis[pos];
+          if (existingRange.Min == 0 && existingRange.Max == 0 || (pos > 0 && existingRange.Min > vId + 1 ))
           {
-            vId = range.Max + 1;
-            range = new Range<VertexId>(1, vId);
+            --pos;
+            existingRange = vertecis[pos];
+          }
+          if (existingRange.Min - 1 == vId)
+          {
+            range = new Range<VertexId>(existingRange.Min - 1, existingRange.Max);
+            if (pos > 0)
+            {
+              Range<VertexId> priorRange = vertecis[pos - 1];
+              if (priorRange.Max == range.Min)
+              {
+                range = new Range<VertexId>(priorRange.Min, range.Max);
+                vertecis[pos - 1] = range;
+                vertecis.RemoveAt(pos);
+              }
+              else
+                vertecis[pos] = range;
+            }
+            else
+              vertecis[pos] = range;
+          }
+          else if (existingRange.Max + 1 == vId)
+          {
+            range = new Range<VertexId>(existingRange.Min, existingRange.Max + 1);
+            if (vertecis.Count > pos)
+            {
+              Range<VertexId> nextRange = vertecis[pos + 1];
+              if (nextRange.Min == range.Max)
+              {
+                range = new Range<VertexId>(range.Min, nextRange.Max);
+                vertecis.RemoveAt(pos);
+                vertecis[pos] = range;
+              }              
+              else
+                vertecis[pos] = range;
+            }
+            else
+              vertecis[pos] = range;
+          }
+          else if (vId >= existingRange.Min && vId <= existingRange.Max)
+          {
+            throw new VertexAllreadyExistException("Vertex with id " + vId + " allready exist");
           }
           else
-          {
-            vId = range.Min - 1;
-            range = new Range<VertexId>(vId, range.Max);
-          }
-          vertecis[0] = range;
-          break;
-        default:
-          {
+            vertecis.Insert(pos, range);
+        }
+      }
+      else
+      {
+        vId = 1;
+        switch (vertecis.Count)
+        {
+          case 0:
+            range = new Range<VertexId>(1, 1);
+            vertecis.Add(range);
+            break;
+          case 1:
             range = vertecis.First();
-            if (range.Min > 1)
+
+            if (range.Min == 1)
+            {
+              vId = range.Max + 1;
+              range = new Range<VertexId>(1, vId);
+            }
+            else
             {
               vId = range.Min - 1;
               range = new Range<VertexId>(vId, range.Max);
             }
-            else
+            vertecis[0] = range;
+            break;
+          default:
             {
-              Range<VertexId> nextRange = vertecis[1];
-              if (range.Max + 2 == nextRange.Min)
+              range = vertecis.First();
+              if (range.Min > 1)
               {
-                vertecis.Remove(range);
-                vId = range.Max + 1;
-                range = new Range<VertexId>(range.Min, nextRange.Max);
+                vId = range.Min - 1;
+                range = new Range<VertexId>(vId, range.Max);
+                vertecis[0] = range;
               }
               else
               {
-                range = new Range<VertexId>(range.Min, range.Max + 1);
-                vId = range.Max + 1;
+                Range<VertexId> nextRange = vertecis[1];
+                if (range.Max + 1 == nextRange.Min)
+                {
+                  vertecis.RemoveAt(1);
+                  vId = nextRange.Min;
+                  range = new Range<VertexId>(range.Min, nextRange.Max);
+                  vertecis[0] = range;
+                }
+                else
+                {
+                  range = new Range<VertexId>(range.Min, range.Max + 1);
+                  vId = range.Max;
+                  vertecis[0] = range;
+                }
               }
-              vertecis.Add(range);
             }
-          }
-          break;
+            break;
+        }
       }
       return new Vertex(g, this, vId);
     }
@@ -417,11 +457,9 @@ namespace VelocityGraph
             aType = new PropertyTypeT<object>(true, typeId, pos, name, kind, Session);
             break;
         }
-        if (IsPersistent)
-          graph.Session.Persist(aType);
         graph.propertyType[pos] = aType;
         vertexProperties[vertexProperties.Length - 1] = aType;
-        stringToPropertyType.Add(name, aType);
+        stringToPropertyType.AddFast(name, aType);
       }
       return aType;
     }
@@ -1086,6 +1124,17 @@ namespace VelocityGraph
       propertyType.SetPropertyValue(vertexId, v);
     }
 
+    /// <summary>
+    /// Gets the session managing this object
+    /// </summary>
+    public override SessionBase Session
+    {
+      get
+      {
+        return graph.Session != null ? graph.Session : base.Session;
+      }
+    }
+    
     public string TypeName
     {
       get
@@ -1097,6 +1146,18 @@ namespace VelocityGraph
     public override string ToString()
     {
       return "VertexType: " + typeName;
+    }
+
+    public override void Unpersist(SessionBase session, bool disableFlush = true)
+    {
+      if (IsPersistent == false)
+        return;
+      vertecis.Unpersist(session, disableFlush);
+      stringToPropertyType.Unpersist(session, disableFlush);
+      edgeTypes.Unpersist(session, disableFlush);
+      tailToHeadEdges.Unpersist(session, disableFlush);
+      headToTailEdges.Unpersist(session, disableFlush);
+      base.Unpersist(session, disableFlush);
     }
   }
 }
