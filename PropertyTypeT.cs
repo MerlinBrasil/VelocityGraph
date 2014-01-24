@@ -16,7 +16,7 @@ using VelocityDb.Collection;
 namespace VelocityGraph
 {
   [Serializable]
-  public class PropertyTypeT<T> : PropertyType
+  public class PropertyTypeT<T> : PropertyType where T : IComparable
   {
     BTreeMap<ElementId, T> propertyValue;
     BTreeMap<T, VelocityDbList<ElementId>> valueIndex;
@@ -108,7 +108,7 @@ namespace VelocityGraph
       return vertexType.GetVertex(elementId);
     }
 
-    public override Vertex GetPropertyVertex(object value, Graph g)
+    public override Vertex GetPropertyVertex(IComparable value, Graph g)
     {
       if (IsVertexProperty == false)
         throw new InvalidTypeIdException();
@@ -129,7 +129,7 @@ namespace VelocityGraph
         yield return vertexType.GetVertex(elementId);
     }
 
-    public override IEnumerable<Vertex> GetPropertyVertices(object value, VertexType vertexType)
+    public override IEnumerable<Vertex> GetPropertyVertices(IComparable value, VertexType vertexType)
     {
       if (IsVertexProperty == false)
         throw new InvalidTypeIdException();
@@ -148,7 +148,7 @@ namespace VelocityGraph
       if (elementId == -1)
         return null;
       EdgeType edgeType = g.edgeType[TypeId];
-      return edgeType.GetEdge(g, elementId);
+      return edgeType.GetEdge(elementId);
     }
 
    // public override IEnumerable<Edge> GetPropertyEdgesV<V>(V value, Graph g)
@@ -165,27 +165,27 @@ namespace VelocityGraph
         VelocityDbList<ElementId> elementIds;
         if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
           foreach (ElementId eId in elementIds)
-            yield return edgeType.GetEdge(g, eId);
+            yield return edgeType.GetEdge(eId);
       }
       if (elementId != -1)     
-        yield return edgeType.GetEdge(g, elementId);
+        yield return edgeType.GetEdge(elementId);
     }
 
-    public override IEnumerable<Edge> GetPropertyEdges(object value, Graph g)
+    public override IEnumerable<Edge> GetPropertyEdges(IComparable value, Graph g)
     {
       if (IsVertexProperty)
         throw new InvalidTypeIdException();
       return GetPropertyEdges((T)value, g);
     }
 
-    public override Edge GetPropertyEdge(object value, Graph g)
+    public override Edge GetPropertyEdge(IComparable value, Graph g)
     {
       if (IsVertexProperty == false)
         throw new InvalidTypeIdException();
       return GetPropertyEdge((T)value, g);
     }
 
-    public override object GetPropertyValue(ElementId element)
+    public override IComparable GetPropertyValue(ElementId element)
     {
       T v = default(T);
       if (GetPropertyValueT(element, ref v))
@@ -193,7 +193,7 @@ namespace VelocityGraph
       return null;
     }
 
-    public override object RemovePropertyValue(ElementId element)
+    public override IComparable RemovePropertyValue(ElementId element)
     {
       T pv;
       if (RemovePropertyValueT(element, out pv))
@@ -201,9 +201,9 @@ namespace VelocityGraph
       return null;
     }
 
-   
 
-    public override void SetPropertyValue(ElementId element, object value)
+
+    public override void SetPropertyValue(ElementId element, IComparable value)
     {
       /*Type fromType = value.GetType();
       Type toType = typeof(T);
@@ -217,6 +217,17 @@ namespace VelocityGraph
         }
       }*/
       SetPropertyValueX(element, (T) value);
+    }
+
+    /// <summary>
+    /// Get the value Type
+    /// </summary>
+    public override Type ValueType 
+    {
+      get
+      {
+        return typeof(T);
+      }
     }
   }
 }

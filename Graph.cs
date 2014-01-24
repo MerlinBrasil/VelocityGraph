@@ -21,20 +21,6 @@ using System.IO;
 
 namespace VelocityGraph
 {
-  public enum Condition
-  {
-    Equal,
-    GreaterEqual,
-    GreaterThan,
-    LessEqual,
-    LessThan,
-    NotEqual,
-    Like,
-    LikeNoCase,
-    Between,
-    RegExp
-  }
-
   public enum DataType
   {
     Boolean,
@@ -47,18 +33,15 @@ namespace VelocityGraph
     Object
   }
 
-  public enum Order
-  {
-    Ascendent,
-    Descendent
-  }
-
   public enum PropertyKind
   {
     Indexed,
-    Unique
+    Unique,
+    NotIndexed
   }
-
+  /// <summary>
+  /// Graph is the root object of a graph. Most graph api is on this class but useful api also exist on <see cref="VertexType"/> and <see cref="EdgeType"/>.
+  /// </summary>
   [Serializable]
   public partial class Graph : OptimizedPersistable, IGraph
   {
@@ -117,8 +100,6 @@ namespace VelocityGraph
       vertexType = new VertexType[0];
       stringToEdgeType = new BTreeMap<string, EdgeType>(null, session);
       edgeType = new EdgeType[0];
-      //stringToRestrictedEdgeType = new BTreeMap<string, EdgeType>(null, session);
-      //restrictedEdgeType = new EdgeType[0];
       propertyType = new PropertyType[0];
       this.session = session;
       NewVertexType("default");
@@ -134,7 +115,7 @@ namespace VelocityGraph
         int ct = 0;
         foreach (Graph g in db.AllObjects<Graph>())
         {
-          if (ct == graphInstance)
+          if (ct++ == graphInstance)
             return g;
         }
       }
@@ -190,7 +171,7 @@ namespace VelocityGraph
       }
       else
         vt = vertexType[0];
-      return vt.NewVertex(this, vId);
+      return vt.NewVertex(vId);
     }
 
     /// <summary>
@@ -209,7 +190,7 @@ namespace VelocityGraph
         EdgeTypeId edgeTypeId = (EdgeTypeId)(fullId >> 32);
         EdgeType et = edgeType[edgeTypeId];
         EdgeTypeId edgeId = (EdgeTypeId)fullId;
-        Edge edge = et.GetEdge(this, edgeId);
+        Edge edge = et.GetEdge(edgeId);
         return edge;
       }
       return null;
@@ -222,7 +203,7 @@ namespace VelocityGraph
     public IEnumerable<IEdge> GetEdges()
     {
       foreach (EdgeType et in edgeType)
-        foreach (IEdge edge in et.GetEdges(this))
+        foreach (IEdge edge in et.GetEdges())
           yield return edge;
     }
 
@@ -243,7 +224,7 @@ namespace VelocityGraph
         case TypeCode.Double:
           return GetEdges<double>(key, (double)value);
         default:
-          return GetEdges<object>(key, value);
+          return GetEdges<IComparable>(key, (IComparable)value);
       };
     }
 
@@ -253,7 +234,7 @@ namespace VelocityGraph
     /// <param name="key">the key of the edge</param>
     /// <param name="value">the value of the edge</param>
     /// <returns>an iterable of edges with provided key and value</returns>
-    public virtual IEnumerable<IEdge> GetEdges<T>(string key, T value)
+    public virtual IEnumerable<IEdge> GetEdges<T>(string key, T value) where T : IComparable
     {
       foreach (EdgeType et in edgeType)
       {
@@ -272,6 +253,7 @@ namespace VelocityGraph
       }
     }
 
+    /// <inheritdoc />
     public override SessionBase Session
     {
       get
@@ -282,6 +264,9 @@ namespace VelocityGraph
       }
     }
 
+    /// <summary>
+    /// Removes all edges and vertices from the graph.
+    /// </summary>
     public void Clear()
     {
       foreach (Edge edge in GetEdges())
@@ -321,8 +306,9 @@ namespace VelocityGraph
     /// Creates a new node type.
     /// </summary>
     /// <param name="name">Unique name for the new vertex type.</param>
+    /// <param name="baseType">Base VertexType for the new VertexType.</param>
     /// <returns>Unique graph type identifier.</returns>
-    public VertexType NewVertexType(string name)
+    public VertexType NewVertexType(string name, VertexType baseType = null)
     {
       VertexType aType;
       if (stringToVertexType.TryGetValue(name, out aType) == false)
@@ -330,7 +316,7 @@ namespace VelocityGraph
         int pos = vertexTypeCt;
         Update();
         Array.Resize(ref vertexType, (int)++vertexTypeCt);
-        aType = new VertexType(pos, name, this);
+        aType = new VertexType(pos, name, baseType, this);
         vertexType[pos] = aType;
         stringToVertexType.AddFast(name, aType);
       }
@@ -342,9 +328,10 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="name">Unique name for the new edge type.</param>
     /// <param name="biderectional">If true, this creates a biderectional edge type, otherwise this creates a unidirectional edge type.</param>
+    /// <param name="baseType">Base EdgeType for the new EdgeType.</param>
     /// <returns>Unique edge type.</returns>
     /// <returns>a new edge type</returns>
-    public EdgeType NewEdgeType(string name, bool biderectional)
+    public EdgeType NewEdgeType(string name, bool biderectional, EdgeType baseType = null)
     {
       EdgeType aType;
       if (stringToEdgeType.TryGetValue(name, out aType) == false)
@@ -352,7 +339,7 @@ namespace VelocityGraph
         int pos = edgeTypeCt;
         Update();
         Array.Resize(ref edgeType, ++edgeTypeCt);
-        aType = new EdgeType(pos, name, null, null, biderectional, this);
+        aType = new EdgeType(pos, name, null, null, biderectional, baseType, this);
         edgeType[pos] = aType;
         stringToEdgeType.AddFast(name, aType);
       }
@@ -368,7 +355,7 @@ namespace VelocityGraph
     /// <param name="tailType">a fixed tail VertexType</param>
     /// <param name="headType">a fixed head VertexType</param>
     /// <returns>a new edge type</returns>
-    public EdgeType NewEdgeType(string name, bool biderectional, VertexType tailType, VertexType headType)
+    public EdgeType NewEdgeType(string name, bool biderectional, VertexType tailType, VertexType headType, EdgeType baseType = null)
     {
       EdgeType aType;
       if (stringToEdgeType.TryGetValue(name, out aType) == false)
@@ -376,7 +363,7 @@ namespace VelocityGraph
         int pos = edgeTypeCt;
         Update();
         Array.Resize(ref edgeType, ++edgeTypeCt);
-        aType = new EdgeType(pos, name, tailType, headType, biderectional, this);
+        aType = new EdgeType(pos, name, tailType, headType, biderectional, baseType, this);
         edgeType[pos] = aType;
         stringToEdgeType.AddFast(name, aType);
       }
@@ -390,7 +377,7 @@ namespace VelocityGraph
     /// <returns>Unique OID of the new node instance.</returns>
     public Vertex NewVertex(VertexType vertexType)
     {
-      return vertexType.NewVertex(this);
+      return vertexType.NewVertex();
     }
 
     /// <summary>
@@ -482,29 +469,25 @@ namespace VelocityGraph
     /// <param name="property"></param>
     /// <param name="v"></param>
     /// <returns>the vertex matching</returns>
-    public Vertex FindVertex(PropertyType property, object v)
+    public Vertex FindVertex(PropertyType property, IComparable v)
     {
       return property.GetPropertyVertex(v, this);
     }
 
     public long CountVertices()
     {
-      return vertexType.Length;
+      long ct = 0;
+      foreach (VertexType vt in vertexType)
+        ct += vt.CountVertices();
+      return ct;
     }
 
     public long CountEdges()
     {
-      return edgeType.Length; // +restrictedEdgeType.Length;
-    }
-
-    public void Drop(Dictionary<Vertex, HashSet<Edge>> objs)
-    {
-      throw new NotImplementedException();
-    }
-
-    public void SetPropertyDefaultValue(PropertyType property, object v)
-    {
-      throw new NotImplementedException();
+      long ct = 0;
+      foreach (EdgeType et in edgeType)
+        ct += et.CountEdges();
+      return ct;
     }
 
     /// <summary>
@@ -545,9 +528,25 @@ namespace VelocityGraph
       return null;
     }
 
+    /// <summary>
+    /// Place this type of of object on its own page
+    /// </summary>
+    /// <returns>
+    /// The default maximum number of objects per page
+    /// </returns>
+    public override UInt16 ObjectsPerPage
+    {
+      get
+      {
+        return 1;
+      }
+    }
+    
     public void RemoveVertexType(VertexType type)
     {
-      if (type.GetVertices(this).ElementAtOrDefault(0) != null)
+      if (type.GetVertices().ElementAtOrDefault(0) != null)
+        throw new VertexTypeInUseException();
+      if (type.subType.Count > 0)
         throw new VertexTypeInUseException();
       type.Unpersist(Session);
     }
@@ -561,7 +560,7 @@ namespace VelocityGraph
     /// Generate a query object that can be used to fine tune which edges/vertices are retrieved from the graph.
     /// </summary>
     /// <returns>a graph query object with methods for constraining which data is pulled from the underlying graph</returns>
-    IQuery IGraph.Query()
+    public IQuery Query()
     {
       return new DefaultGraphQuery(this);
     }
@@ -570,15 +569,51 @@ namespace VelocityGraph
     /// Remove the provided edge from the graph.
     /// </summary>
     /// <param name="edge">the edge to remove from the graph</param>
-    void IGraph.RemoveEdge(IEdge edge)
+    public void RemoveEdge(IEdge edge)
     {
       Edge e = edge as Edge;
       e.EdgeType.RemoveEdge(e);
     }
 
-    public void RemovePropertyType(PropertyType attr)
+    /// <summary>
+    /// Removes a property type except if any vertex or edge is using it
+    /// </summary>
+    /// <param name="pt">property type to remove</param>
+    public void RemovePropertyType(PropertyType pt)
     {
-      throw new NotImplementedException();
+      if (pt.IsVertexProperty)
+      {
+        VertexType vt = vertexType[pt.TypeId];
+        foreach (Vertex vertex in vt.GetVertices())
+        {
+          IComparable v = pt.GetPropertyValue(vertex.VertexId);
+          if (v != null)
+            throw new PropertyTypeInUseException();
+        }
+      }
+      else
+      {
+        EdgeType et = edgeType[pt.TypeId];
+        foreach (Edge edge in et.GetEdges())
+        {
+          IComparable v = pt.GetPropertyValue(edge.EdgeId);
+          if (v != null)
+            throw new PropertyTypeInUseException();
+        }
+      }
+      if (pt.IsVertexProperty)
+      {
+        VertexType vt = vertexType[pt.TypeId];
+        vt.stringToPropertyType.Remove(pt.Name);
+      }
+      else
+      {
+        EdgeType et = edgeType[pt.TypeId];
+        et.stringToPropertyType.Remove(pt.Name);
+      }
+      Update();
+      propertyType[pt.PropertyId] = null;
+      pt.Unpersist(Session, true);
     }
 
     /// <summary>
@@ -586,37 +621,73 @@ namespace VelocityGraph
     /// Upon removing the vertex, all the edges by which the vertex is connected must be removed as well.
     /// </summary>
     /// <param name="vertex">the vertex to remove from the graph</param>
-    void IGraph.RemoveVertex(IVertex vertex)
+    public void RemoveVertex(IVertex vertex)
     {
       Vertex v = vertex as Vertex;
       v.VertexType.RemoveVertex(v);
     }
 
-    public Dictionary<Vertex, HashSet<Edge>> Select(VertexType type)
+    /// <summary>
+    /// Enumerates all elements satisfying the given condition for the given property and value
+    /// </summary>
+    /// <param name="property">Property we are looking for</param>
+    /// <param name="condition">A filter function, applied with in graph value as 1st parameter and value as second parameter. </param>
+    /// <param name="value">Filtering value</param>
+    /// <returns>Enum of IElement</returns>
+    public IEnumerable<IElement> Select(PropertyType property, Func<IComparable, IComparable, Boolean> condition, IComparable value)
     {
-      throw new NotImplementedException();
-    }
-
-    public Dictionary<Vertex, HashSet<Edge>> Select(PropertyType attr, Condition cond, object v)
-    {
-      throw new NotImplementedException();
-    }
-
-    public Dictionary<Vertex, HashSet<Edge>> Select(PropertyType attr, Condition cond, object lower, object higher)
-    {
-      throw new NotImplementedException();
+      if (property.IsVertexProperty)
+      {
+        VertexType vt = vertexType[property.TypeId];
+        foreach (Vertex vertex in vt.GetVertices())
+        {
+          IComparable v = property.GetPropertyValue(vertex.VertexId);
+          if (condition(v, value))
+            yield return vertex;
+        }
+      }
+      else
+      {
+        EdgeType et = edgeType[property.TypeId];
+        foreach (Edge edge in et.GetEdges())
+        {
+          IComparable v = property.GetPropertyValue(edge.EdgeId);
+          if (condition(v, value))
+            yield return edge;
+        }
+      }
     }
 
     /// <summary>
-    /// Selects all edges from or to each of the vertex ids in the given collection and for the given edge type. 
+    /// numerates all elements satisfying the given condition for the given property and value range
     /// </summary>
-    /// <param name="Vertices">a set of Vertices</param>
-    /// <param name="etype">the id of an EdgeType</param>
-    /// <param name="dir">direction, one of: Ingoing, Outgoing, Any</param>
-    /// <returns>a set of Vertex</returns>
-    public Dictionary<Vertex, HashSet<Edge>> GetVertices(Dictionary<Vertex, HashSet<Edge>> vertices, EdgeTypeId etype, Direction dir)
+    /// <param name="property">Property we are looking for</param>
+    /// <param name="condition"> filter function, applied with in graph value as 1st parameter, lower as 2nd and higher as 3rd parameter.</param>
+    /// <param name="lower">lower value in filtering</param>
+    /// <param name="higher">higher value in filtering</param>
+    /// <returns></returns>
+    public IEnumerable<IElement> Select(PropertyType property, Func<IComparable, IComparable, IComparable, Boolean> condition, IComparable lower, IComparable higher)
     {
-      throw new NotImplementedException();
+      if (property.IsVertexProperty)
+      {
+        VertexType vt = vertexType[property.TypeId];
+        foreach (Vertex vertex in vt.GetVertices())
+        {
+          IComparable v = property.GetPropertyValue(vertex.VertexId);
+          if (condition(v, lower, higher))
+            yield return vertex;
+        }
+      }
+      else
+      {
+        EdgeType et = edgeType[property.TypeId];
+        foreach (Edge edge in et.GetEdges())
+        {
+          IComparable v = property.GetPropertyValue(edge.EdgeId);
+          if (condition(v, lower, higher))
+            yield return edge;
+        }
+      }
     }
 
     /// <summary>
@@ -650,7 +721,7 @@ namespace VelocityGraph
           return vertex;
         }
       }
-      return null; 
+      return null;
     }
 
     /// <summary>
@@ -660,7 +731,7 @@ namespace VelocityGraph
     public IEnumerable<IVertex> GetVertices()
     {
       foreach (VertexType vt in vertexType)
-        foreach (IVertex vertex in vt.GetVertices(this))
+        foreach (IVertex vertex in vt.GetVertices())
           yield return vertex;
     }
 
@@ -670,36 +741,29 @@ namespace VelocityGraph
     /// <param name="key">the key of vertex</param>
     /// <param name="value">the value of the vertex</param>
     /// <returns>an iterable of vertices with provided key and value</returns>
-    IEnumerable<IVertex> IGraph.GetVertices(string key, object value)
+    public IEnumerable<IVertex> GetVertices(string key, object value)
     {
-        foreach (VertexType vt in vertexType)
-        {
-          PropertyType pt = vt.FindProperty(key);
-          foreach (Vertex vertex in pt.GetPropertyVertices(value, vt))
-            yield return vertex;
-        }
+      foreach (VertexType vt in vertexType)
+      {
+        PropertyType pt = vt.FindProperty(key);
+        foreach (Vertex vertex in pt.GetPropertyVertices((IComparable)value, vt))
+          yield return vertex;
+      }
+    }
+    /// <summary>
+    /// Enumerates all the edges of the given type between two given nodes (tail and head).
+    /// </summary>
+    /// <param name="etype">Type of Edge</param>
+    /// <param name="tail">Outgoing Vertex</param>
+    /// <param name="head">Incoming Vertex</param>
+    /// <returns>Enumeration of Edge</returns>
+    public IEnumerable<IEdge> Edges(EdgeType etype, Vertex tail, Vertex head)
+    {
+      VertexType vertexType = tail.VertexType;
+      return vertexType.GetEdges(etype, tail, Direction.Out, head);
     }
 
-    public HashSet<Edge> Edges(EdgeTypeId etype, Vertex tail, Vertex head)
-    {
-      throw new NotImplementedException();
-    }
-
-    public Dictionary<Vertex, HashSet<Edge>> Tails(Dictionary<Vertex, HashSet<Edge>> edges)
-    {
-      throw new NotImplementedException();
-    }
-
-    public Dictionary<Vertex, HashSet<Edge>> Heads(Dictionary<Vertex, HashSet<Edge>> edges)
-    {
-      throw new NotImplementedException();
-    }
-
-    public void TailsAndHeads(HashSet<Edge> edges, Dictionary<Vertex, HashSet<Edge>> tails, Dictionary<Vertex, HashSet<Edge>> heads)
-    {
-      throw new NotImplementedException();
-    }
-
+    /// <inheritdoc />
     public override string ToString()
     {
       return StringFactory.GraphString(this, string.Concat("vertices:", CountVertices().ToString(CultureInfo.InvariantCulture), " edges:", CountEdges().ToString(CultureInfo.InvariantCulture)));
@@ -715,23 +779,48 @@ namespace VelocityGraph
       return edgeType;
     }
 
-    public object[] GetValues(PropertyType property)
+    /// <summary>
+    /// Enumerates all the values for the given vertex/edge property
+    /// </summary>
+    /// <param name="property">Edge or Vertex property</param>
+    /// <returns>Enumeration of property values</returns>
+    public IEnumerable<IComparable> GetValues(PropertyType property)
     {
-      throw new NotImplementedException();
+      if (property.IsVertexProperty)
+      {
+        foreach (VertexType vt in vertexType)
+          foreach (Vertex vertex in vt.GetVertices())
+          {
+            IComparable v = property.GetPropertyValue(vertex.VertexId);
+            if (v != null)
+              yield return v;
+          }
+      }
+      else
+      {
+        foreach (EdgeType et in edgeType)
+          foreach (Edge edge in et.GetEdges())
+          {
+            IComparable v = property.GetPropertyValue(edge.EdgeId);
+            if (v != null)
+              yield return v;
+          }
+      }
     }
 
     public static void DeployInternalTypes(SessionBase session, string outputDirectory)
     {
-        if (!Directory.Exists(outputDirectory))
-            Directory.CreateDirectory(outputDirectory);
-        session.DeployGenerateReaderWriter(typeof(Graph), outputDirectory);
-        session.DeployGenerateReaderWriter(typeof(PropertyType), outputDirectory);
-        session.DeployGenerateReaderWriter(typeof(VertexType), outputDirectory);
-        session.DeployGenerateReaderWriter(typeof(EdgeType), outputDirectory);
-        //session.DeployGenerateReaderWriter(typeof(BTreeBase<VertexId, VertexId>), outputDirectory);
-        //session.DeployGenerateReaderWriter(typeof(BTreeSet<VertexId>), outputDirectory);
+      if (!Directory.Exists(outputDirectory))
+        Directory.CreateDirectory(outputDirectory);
+      session.DeployGenerateReaderWriter(typeof(Graph), outputDirectory);
+      session.DeployGenerateReaderWriter(typeof(PropertyType), outputDirectory);
+      session.DeployGenerateReaderWriter(typeof(VertexType), outputDirectory);
+      session.DeployGenerateReaderWriter(typeof(EdgeType), outputDirectory);
+      //session.DeployGenerateReaderWriter(typeof(BTreeBase<VertexId, VertexId>), outputDirectory);
+      //session.DeployGenerateReaderWriter(typeof(BTreeSet<VertexId>), outputDirectory);
     }
 
+    /// <inheritdoc />
     public override UInt64 Persist(Placement place, SessionBase session, bool persistRefs = true, bool disableFlush = false, Queue<IOptimizedPersistable> toPersist = null)
     {
       if (IsPersistent)
@@ -739,7 +828,11 @@ namespace VelocityGraph
       session.RegisterClass(typeof(Graph));
       session.RegisterClass(typeof(PropertyType));
       session.RegisterClass(typeof(VertexType));
+      session.RegisterClass(typeof(VelocityDbList<VertexType>));
       session.RegisterClass(typeof(EdgeType));
+      session.RegisterClass(typeof(VelocityDbList<Range<ElementId>>));
+      session.RegisterClass(typeof(VelocityDbList<EdgeType>));
+      session.RegisterClass(typeof(Range<VertexId>));
       session.RegisterClass(typeof(BTreeSet<Range<VertexId>>));
       session.RegisterClass(typeof(BTreeSet<EdgeType>));
       session.RegisterClass(typeof(BTreeSet<EdgeIdVertexId>));
@@ -756,7 +849,7 @@ namespace VelocityGraph
       session.RegisterClass(typeof(PropertyTypeT<double>));
       session.RegisterClass(typeof(PropertyTypeT<DateTime>));
       session.RegisterClass(typeof(PropertyTypeT<string>));
-      session.RegisterClass(typeof(PropertyTypeT<object>));
+      session.RegisterClass(typeof(PropertyTypeT<IComparable>));
       return base.Persist(place, session, persistRefs, disableFlush, toPersist);
     }
   }

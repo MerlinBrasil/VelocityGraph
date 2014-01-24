@@ -79,7 +79,7 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="property">Property type identifier.</param>
     /// <param name="v">Value for the given Property and for the given id.</param>
-    public object GetProperty(PropertyType property)
+    public IComparable GetProperty(PropertyType property)
     {
       return edgeType.GetPropertyValue(EdgeId, property);
     }
@@ -176,7 +176,7 @@ namespace VelocityGraph
       return pt.RemovePropertyValue(id);
     }
 
-    public void SetProperty(PropertyType property, object v)
+    public void SetProperty(PropertyType property, IComparable v)
     {
       if (edgeType != null)
         edgeType.SetPropertyValue(EdgeId, property, v);
@@ -201,7 +201,7 @@ namespace VelocityGraph
       PropertyType pt = edgeType.FindProperty(key);
       if (pt == null)
         pt = edgeType.NewProperty(key, value, PropertyKind.Indexed);
-      edgeType.SetPropertyValue(EdgeId, pt, value);
+      edgeType.SetPropertyValue(EdgeId, pt, (IComparable) value);
     }
 
     /// <summary>

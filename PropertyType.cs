@@ -59,12 +59,13 @@ namespace VelocityGraph
       }
     }
 
-    abstract public Vertex GetPropertyVertex(object value, Graph g);
-    abstract public IEnumerable<Vertex> GetPropertyVertices(object value, VertexType vertexType);
-    abstract public Edge GetPropertyEdge(object value, Graph g);
-    abstract public IEnumerable<Edge> GetPropertyEdges(object value, Graph g);
-    abstract public object GetPropertyValue(ElementId elementId);
-    abstract public void SetPropertyValue(ElementId elementId, object value);
-    abstract public object RemovePropertyValue(ElementId elementId);
+    abstract public Type ValueType { get; }
+    abstract public Vertex GetPropertyVertex(IComparable value, Graph g);
+    abstract public IEnumerable<Vertex> GetPropertyVertices(IComparable value, VertexType vertexType);
+    abstract public Edge GetPropertyEdge(IComparable value, Graph g);
+    abstract public IEnumerable<Edge> GetPropertyEdges(IComparable value, Graph g);
+    abstract public IComparable GetPropertyValue(ElementId elementId);
+    abstract public void SetPropertyValue(ElementId elementId, IComparable value);
+    abstract public IComparable RemovePropertyValue(ElementId elementId);
   }
 }

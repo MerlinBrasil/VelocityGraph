@@ -38,7 +38,7 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="key">the string key of the property</param>
     /// <param name="value">the T value o the property</param>
-    public abstract void SetProperty<T>(string key, T value);
+    public abstract void SetProperty<T>(string key, T value) where T : IComparable;
     /// <summary>
     /// Un-assigns a key/value property from the element.
     /// The object value of the removed property is returned.

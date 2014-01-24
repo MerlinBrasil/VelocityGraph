@@ -76,11 +76,6 @@ namespace VelocityGraph
       return vertexType.GetNumberOfEdges(edgeType, this.VertexId, dir);
     }
 
-    public PropertyType[] GetProperties()
-    {
-      return vertexType.vertexProperties;
-    }
-
     /// <summary>
     /// Return the object value associated with the provided string key.
     /// If no value exists for that key, return null.
@@ -124,7 +119,7 @@ namespace VelocityGraph
     /// <returns>a set of Edge</returns>
     public IEnumerable<IEdge> GetEdges(EdgeType edgeType, Direction dir)
     {
-      return vertexType.GetEdges(graph, edgeType, this, dir);
+      return vertexType.GetEdges(edgeType, this, dir);
     }
 
     /// <summary>
@@ -166,7 +161,7 @@ namespace VelocityGraph
           EdgeType edgeType = graph.FindEdgeType(label);
           if (edgeType != null)
           {
-            foreach (IEdge edge in vertexType.GetEdges(graph, edgeType, this, Direction.In))
+            foreach (IEdge edge in vertexType.GetEdges(edgeType, this, Direction.In))
               yield return edge;
           }
         }
@@ -185,7 +180,7 @@ namespace VelocityGraph
         foreach (string label in labels)
         {
           EdgeType edgeType = graph.FindEdgeType(label);
-          foreach (IEdge edge in vertexType.GetEdges(graph, edgeType, this, Direction.Out))
+          foreach (IEdge edge in vertexType.GetEdges(edgeType, this, Direction.Out))
             yield return edge;
         }
       }
@@ -334,7 +329,7 @@ namespace VelocityGraph
       return pt.RemovePropertyValue(id);
     }
 
-    public void SetProperty(PropertyType property, object v)
+    public void SetProperty(PropertyType property, IComparable v)
     {
       vertexType.SetPropertyValue(VertexId, property, v);
     }
@@ -356,7 +351,7 @@ namespace VelocityGraph
       PropertyType pt = vertexType.FindProperty(key);
       if (pt == null)
         pt = vertexType.graph.NewVertexProperty(vertexType, key, DataType.Object, PropertyKind.Indexed);
-      vertexType.SetPropertyValue(VertexId, pt, value);
+      vertexType.SetPropertyValue(VertexId, pt, (IComparable) value);
     }
 
     /// <summary>
