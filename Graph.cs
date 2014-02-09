@@ -45,6 +45,8 @@ namespace VelocityGraph
   [Serializable]
   public partial class Graph : OptimizedPersistable, IGraph
   {
+    enum GraphFlags { VertexIdSetPerType = 1 };
+    UInt32 flags;
     BTreeMap<string, VertexType> stringToVertexType;
     internal VertexType[] vertexType;
     BTreeMap<string, EdgeType> stringToEdgeType;
@@ -52,6 +54,8 @@ namespace VelocityGraph
     int vertexTypeCt;
     int edgeTypeCt;
     internal PropertyType[] propertyType;
+    VelocityDbList<Range<VertexId>> vertecis;
+    internal BTreeMap<VertexId, VertexTypeId> vertexIdToVertexType;
     [NonSerialized]
     SessionBase session;
     static readonly Features features = new Features();
@@ -92,18 +96,171 @@ namespace VelocityGraph
       features.SupportsThreadedTransactions = true;
     }
 
-    public Graph(SessionBase session)
+    /// <summary>
+    /// Creates a new <see cref="Graph"/>
+    /// </summary>
+    /// <param name="session">The active session</param>
+    /// <param name="vertexIdSetPerVertexType">Set to <see langword="false"/> if you want graph wide unique <see cref="Vertex"/> ids, by default <see langword="true"/> each <see cref="VertexType"/> maintains its own set of <see cref="Vertex"/> ids</param>
+    public Graph(SessionBase session, bool vertexIdSetPerVertexType = true)
     {
+      flags = 0;
       edgeTypeCt = 0;
       vertexTypeCt = 0;
       stringToVertexType = new BTreeMap<string, VertexType>(null, session);
       vertexType = new VertexType[0];
       stringToEdgeType = new BTreeMap<string, EdgeType>(null, session);
+      if (vertexIdSetPerVertexType)
+        flags += (UInt32) GraphFlags.VertexIdSetPerType;
+      else
+      {
+        vertexIdToVertexType = new BTreeMap<EdgeTypeId, EdgeTypeId>(null, session);
+        vertecis = new VelocityDbList<Range<VertexId>>();
+      }
       edgeType = new EdgeType[0];
       propertyType = new PropertyType[0];
       this.session = session;
       NewVertexType("default");
       NewEdgeType("default", true); // not sure if we need "directed" or not as edge type parameter ???
+    }
+
+    internal VertexId AllocateVertexId(VertexId vId = 0, VelocityDbList<Range<VertexId>> vertecis = null)
+    {
+      if (vertecis == null)
+      {
+        if (this.vertecis == null)
+          return vId;
+        vertecis = this.vertecis;
+      }
+      Range<VertexId> range;
+      if (vId != 0)
+      {
+        range = new Range<VertexId>(vId, vId);
+        if (vertecis.Count == 0)
+          vertecis.Add(range);
+        else
+        {
+          bool isEqual;
+          int pos = vertecis.BinarySearch(range, out isEqual);
+          int originalPos = pos;
+          if (isEqual)
+            throw new VertexAllreadyExistException("Vertex with id " + vId + " allready exist");
+          Range<VertexId> existingRange = vertecis[pos == vertecis.Count ? pos - 1 : pos];
+          if (existingRange.Min == 0 && existingRange.Max == 0 || (pos > 0 && existingRange.Min > vId + 1))
+            existingRange = vertecis[--pos];
+          if (existingRange.Min - 1 == vId)
+          {
+            range = new Range<VertexId>(existingRange.Min - 1, existingRange.Max);
+            if (pos > 0)
+            {
+              Range<VertexId> priorRange = vertecis[pos - 1];
+              if (priorRange.Max + 1 == range.Min)
+              {
+                range = new Range<VertexId>(priorRange.Min, range.Max);
+                vertecis[pos - 1] = range;
+                vertecis.RemoveAt(pos);
+              }
+              else
+                vertecis[pos] = range;
+            }
+            else
+              vertecis[pos] = range;
+          }
+          else if (existingRange.Max + 1 == vId)
+          {
+            range = new Range<VertexId>(existingRange.Min, existingRange.Max + 1);
+            if (vertecis.Count > pos)
+            {
+              Range<VertexId> nextRange = vertecis[pos + 1];
+              if (nextRange.Min == range.Max + 1)
+              {
+                range = new Range<VertexId>(range.Min, nextRange.Max);
+                vertecis.RemoveAt(pos);
+                vertecis[pos] = range;
+              }
+              else
+                vertecis[pos] = range;
+            }
+            else
+              vertecis[pos == vertecis.Count ? pos - 1 : pos] = range;
+          }
+          else if (vId >= existingRange.Min && vId <= existingRange.Max)
+          {
+            throw new VertexAllreadyExistException("Vertex with id " + vId + " allready exist");
+          }
+          else
+            vertecis.Insert(originalPos, range);
+#if VERIFY
+          int i = 0;
+          Range<VertexId> p = default(Range<VertexId>);
+          foreach (Range<VertexId> r in vertecis)
+          {
+            if (i++ > 0)
+            {
+              if (p.Min >= r.Min)
+                throw new UnexpectedException("Wrong order");
+              if (p.Max == r.Min + 1)
+                throw new UnexpectedException("Failed to merge");
+            }
+            p = r;
+          }
+#endif
+        }
+      }
+      else
+      {
+        vId = 1;
+        switch (vertecis.Count)
+        {
+          case 0:
+            range = new Range<VertexId>(1, 1);
+            vertecis.Add(range);
+            break;
+          case 1:
+            range = vertecis.First();
+
+            if (range.Min == 1)
+            {
+              vId = range.Max + 1;
+              range = new Range<VertexId>(1, vId);
+            }
+            else
+            {
+              vId = range.Min - 1;
+              range = new Range<VertexId>(vId, range.Max);
+            }
+            vertecis[0] = range;
+            break;
+          default:
+            {
+              range = vertecis.First();
+              if (range.Min > 1)
+              {
+                vId = range.Min - 1;
+                range = new Range<VertexId>(vId, range.Max);
+                vertecis[0] = range;
+              }
+              else
+              {
+                Range<VertexId> nextRange = vertecis[1];
+                if (range.Max + 1 == nextRange.Min)
+                {
+                  vertecis.RemoveAt(1);
+                  vId = nextRange.Min;
+                  range = new Range<VertexId>(range.Min, nextRange.Max);
+                  vertecis[0] = range;
+                }
+                else
+                {
+                  range = new Range<VertexId>(range.Min, range.Max + 1);
+                  vId = range.Max;
+                  vertecis[0] = range;
+                }
+              }
+            }
+            break;
+        }
+      }
+      return vId;
     }
 
     public static Graph Open(SessionBase session, int graphInstance = 0)
@@ -482,6 +639,42 @@ namespace VelocityGraph
       return ct;
     }
 
+    /// <summary>
+    /// Returns a value indicating whether a Vertex exists for the specified vertex id.
+    /// </summary>
+    /// <param name="vertexId">A Vertex id</param>
+    /// <returns>Returns <see langword="true"/> if a Vertex exist with specified <paramref name="vertexId"/> is found in this <see cref="Graph"/>; otherwise, <see langword="false"/>.</returns>
+    public bool ContainsVertex(VertexId vertexId)
+    {
+      if (VertexIdSetPerType)
+        throw new NotSupportedException("ContainsVertex by VertexId on graph level is not supported when using VertexIdSetPerType");
+      if (vertecis.Count > 0)
+      {
+        Range<VertexId> range = new Range<VertexId>(vertexId, vertexId);
+        bool isEqual;
+        int pos = vertecis.BinarySearch(range, out isEqual);
+        if (pos >= 0)
+        {
+          if (pos == vertecis.Count)
+            --pos;
+          range = vertecis[pos];
+          if (range.Contains(vertexId))
+            return true;
+          if (pos > 0)
+          {
+            range = vertecis[--pos];
+            if (range.Contains(vertexId))
+              return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    /// <summary>
+    /// Returns a count of all edges in this graph
+    /// </summary>
+    /// <returns>the total count of edges in this graph</returns>
     public long CountEdges()
     {
       long ct = 0;
@@ -542,6 +735,10 @@ namespace VelocityGraph
       }
     }
     
+    /// <summary>
+    /// Removes a <see cref="VertexType"/> from this graph. An exception is thrown if the <see cref="VertexType"/> is in use.
+    /// </summary>
+    /// <param name="type">a <see cref="VertexType"/> instance</param>
     public void RemoveVertexType(VertexType type)
     {
       if (type.GetVertices().ElementAtOrDefault(0) != null)
@@ -551,6 +748,12 @@ namespace VelocityGraph
       type.Unpersist(Session);
     }
 
+    /// <summary>
+    /// Finds a <see cref="PropertyType"/> of <see cref="VertexType"/>.
+    /// </summary>
+    /// <param name="vertexType">vertex type with property type</param>
+    /// <param name="name">a name of a property</param>
+    /// <returns></returns>
     public PropertyType FindVertexProperty(VertexType vertexType, string name)
     {
       return vertexType.FindProperty(name);
@@ -724,6 +927,34 @@ namespace VelocityGraph
       return null;
     }
 
+    public Vertex GetVertex(VertexId id)
+    {
+      if (VertexIdSetPerType)
+        throw new NotSupportedException("GetVertex by VertexId on graph level is not supported when using VertexIdSetPerType");
+      VertexTypeId tId;
+      if (vertexIdToVertexType.TryGetValue(id, out tId))
+      {
+        VertexType vt = vertexType[tId];
+        return vt.GetVertex(id, false);
+      }
+      throw new VertexDoesNotExistException();
+    }
+
+    /// <summary>
+    /// Given a <see cref="Vertex"/> id, returns the corresponding  <see cref="Vertex"/>.
+    /// </summary>
+    /// <param name="id">Id of a <see cref="Vertex"/></param>
+    /// <returns>A <see cref="Vertex"/> with <param name="id">. Throws <see cref="VertexTypeDoesNotExistException"/> if <see cref="Vertex"/> does not exist</returns>
+    public VertexType GetVertexType(VertexId id)
+    {
+      if (VertexIdSetPerType)
+        throw new NotSupportedException("GetVertexType by VertexId on graph level is not supported when using VertexIdSetPerType");
+      VertexTypeId tId;
+      if (vertexIdToVertexType.TryGetValue(id, out tId))
+        return vertexType[tId];
+      throw new VertexTypeDoesNotExistException();
+    }
+
     /// <summary>
     /// Return an iterable to all the vertices in the graph.
     /// </summary>
@@ -731,7 +962,7 @@ namespace VelocityGraph
     public IEnumerable<IVertex> GetVertices()
     {
       foreach (VertexType vt in vertexType)
-        foreach (IVertex vertex in vt.GetVertices())
+        foreach (IVertex vertex in vt.GetVertices(false))
           yield return vertex;
     }
 
@@ -750,6 +981,7 @@ namespace VelocityGraph
           yield return vertex;
       }
     }
+
     /// <summary>
     /// Enumerates all the edges of the given type between two given nodes (tail and head).
     /// </summary>
@@ -808,6 +1040,39 @@ namespace VelocityGraph
       }
     }
 
+    internal void DeAllocateVertexId(VertexId vId, VelocityDbList<Range<VertexId>> vertecis = null)
+    {
+      if (vertecis == null)
+      {
+        if (this.vertecis == null)
+          return;
+        vertecis = this.vertecis;
+      }
+      Range<VertexId> range = new Range<VertexId>(vId, vId);
+      bool isEqual;
+      int pos = vertecis.BinarySearch(range, out isEqual);
+      if (pos >= 0)
+      {
+        if (pos == vertecis.Count || (pos > 0 && vertecis[pos].Min > vId))
+          --pos;
+        range = vertecis[pos];
+        if (range.Min == vId)
+        {
+          if (range.Max == vId)
+            vertecis.RemoveAt(pos);
+          else
+            vertecis[pos] = new Range<VertexId>(range.Min + 1, range.Max);
+        }
+        else if (range.Max == vId)
+          vertecis[pos] = new Range<VertexId>(range.Min, range.Max + 1);
+        else
+        {
+          vertecis[pos] = new Range<VertexId>(range.Min, vId - 1);
+          vertecis.Insert(pos + 1, new Range<VertexId>(vId + 1, range.Max));
+        }
+      }
+    }
+
     public static void DeployInternalTypes(SessionBase session, string outputDirectory)
     {
       if (!Directory.Exists(outputDirectory))
@@ -826,6 +1091,7 @@ namespace VelocityGraph
       if (IsPersistent)
         return Id;
       session.RegisterClass(typeof(Graph));
+      session.RegisterClass(typeof(BTreeMap<EdgeTypeId, EdgeTypeId>));
       session.RegisterClass(typeof(PropertyType));
       session.RegisterClass(typeof(VertexType));
       session.RegisterClass(typeof(VelocityDbList<VertexType>));
@@ -851,6 +1117,28 @@ namespace VelocityGraph
       session.RegisterClass(typeof(PropertyTypeT<string>));
       session.RegisterClass(typeof(PropertyTypeT<IComparable>));
       return base.Persist(place, session, persistRefs, disableFlush, toPersist);
+    }
+
+    /// <inheritdoc />
+    public override void Unpersist(SessionBase session, bool disableFlush = true)
+    {
+      if (IsPersistent == false)
+        return;
+      if (vertecis != null)
+        vertecis.Unpersist(session, disableFlush);
+      stringToVertexType.Unpersist(session, disableFlush);
+      stringToEdgeType.Unpersist(session, disableFlush);
+      if (vertexIdToVertexType != null)
+        vertexIdToVertexType.Unpersist(session, disableFlush);
+      base.Unpersist(session, disableFlush);
+    }
+
+    public bool VertexIdSetPerType
+    {
+      get
+      {
+        return (flags & (UInt32) GraphFlags.VertexIdSetPerType) != 0;
+      }
     }
   }
 }

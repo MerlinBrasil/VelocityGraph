@@ -87,6 +87,7 @@
     <Compile Include="PropertyTypeT.cs" />
     <Compile Include="PropertyType.cs" />
     <Compile Include="Graph.cs" />
+    <Compile Include="VertexTypeDoesNotExistException.cs" />
     <Compile Include="VertexTypeInUseException.cs" />
   </ItemGroup>
   <ItemGroup>

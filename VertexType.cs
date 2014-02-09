@@ -194,135 +194,10 @@ namespace VelocityGraph
 
     public Vertex NewVertex(VertexId vId = 0)
     {
-      Range<VertexId> range;
-      if (vId != 0)
-      {
-        range = new Range<VertexId>(vId, vId);
-        if (vertecis.Count == 0)
-          vertecis.Add(range);
-        else
-        {
-          bool isEqual;
-          int pos = vertecis.BinarySearch(range, out isEqual);
-          int originalPos = pos;
-          if (isEqual)
-            throw new VertexAllreadyExistException("Vertex with id " + vId + " allready exist");
-          Range<VertexId> existingRange = vertecis[pos == vertecis.Count ? pos - 1 : pos];
-          if (existingRange.Min == 0 && existingRange.Max == 0 || (pos > 0 && existingRange.Min > vId + 1))
-            existingRange = vertecis[--pos];
-          if (existingRange.Min - 1 == vId)
-          {
-            range = new Range<VertexId>(existingRange.Min - 1, existingRange.Max);
-            if (pos > 0)
-            {
-              Range<VertexId> priorRange = vertecis[pos - 1];
-              if (priorRange.Max + 1 == range.Min)
-              {
-                range = new Range<VertexId>(priorRange.Min, range.Max);
-                vertecis[pos - 1] = range;
-                vertecis.RemoveAt(pos);
-              }
-              else
-                vertecis[pos] = range;
-            }
-            else
-              vertecis[pos] = range;
-          }
-          else if (existingRange.Max + 1 == vId)
-          {
-            range = new Range<VertexId>(existingRange.Min, existingRange.Max + 1);
-            if (vertecis.Count > pos)
-            {
-              Range<VertexId> nextRange = vertecis[pos + 1];
-              if (nextRange.Min == range.Max + 1)
-              {
-                range = new Range<VertexId>(range.Min, nextRange.Max);
-                vertecis.RemoveAt(pos);
-                vertecis[pos] = range;
-              }
-              else
-                vertecis[pos] = range;
-            }
-            else
-              vertecis[pos == vertecis.Count ? pos - 1 : pos] = range;
-          }
-          else if (vId >= existingRange.Min && vId <= existingRange.Max)
-          {
-            throw new VertexAllreadyExistException("Vertex with id " + vId + " allready exist");
-          }
-          else
-            vertecis.Insert(originalPos, range);
-#if VERIFY
-          int i = 0;
-          Range<VertexId> p = default(Range<VertexId>);
-          foreach (Range<VertexId> r in vertecis)
-          {
-            if (i++ > 0)
-            {
-              if (p.Min >= r.Min)
-                throw new UnexpectedException("Wrong order");
-              if (p.Max == r.Min + 1)
-                throw new UnexpectedException("Failed to merge");
-            }
-            p = r;
-          }
-#endif
-        }
-      }
-      else
-      {
-        vId = 1;
-        switch (vertecis.Count)
-        {
-          case 0:
-            range = new Range<VertexId>(1, 1);
-            vertecis.Add(range);
-            break;
-          case 1:
-            range = vertecis.First();
-
-            if (range.Min == 1)
-            {
-              vId = range.Max + 1;
-              range = new Range<VertexId>(1, vId);
-            }
-            else
-            {
-              vId = range.Min - 1;
-              range = new Range<VertexId>(vId, range.Max);
-            }
-            vertecis[0] = range;
-            break;
-          default:
-            {
-              range = vertecis.First();
-              if (range.Min > 1)
-              {
-                vId = range.Min - 1;
-                range = new Range<VertexId>(vId, range.Max);
-                vertecis[0] = range;
-              }
-              else
-              {
-                Range<VertexId> nextRange = vertecis[1];
-                if (range.Max + 1 == nextRange.Min)
-                {
-                  vertecis.RemoveAt(1);
-                  vId = nextRange.Min;
-                  range = new Range<VertexId>(range.Min, nextRange.Max);
-                  vertecis[0] = range;
-                }
-                else
-                {
-                  range = new Range<VertexId>(range.Min, range.Max + 1);
-                  vId = range.Max;
-                  vertecis[0] = range;
-                }
-              }
-            }
-            break;
-        }
-      }
+      vId = graph.AllocateVertexId(vId);
+      vId = graph.AllocateVertexId(vId, vertecis);
+      if (graph.vertexIdToVertexType != null)
+        graph.vertexIdToVertexType.AddFast(vId, typeId);
       return new Vertex(graph, this, vId);
     }
 
@@ -992,7 +867,7 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="polymorphic">If true, also include all vertices of sub types of this VertexType</param>
     /// <returns>Enumeration of vertices</returns>
-    public IEnumerable<Vertex> GetVertices(bool polymorphic = true)
+    public IEnumerable<Vertex> GetVertices(bool polymorphic = false)
     {
       foreach (Range<VertexId> range in vertecis)
         foreach (VertexId vId in Enumerable.Range((int)range.Min, (int)range.Max - range.Min + 1))
@@ -1172,29 +1047,8 @@ namespace VelocityGraph
       foreach (string key in GetPropertyKeys())
         vertex.RemoveProperty(key);
 
-      Range<VertexId> range = new Range<VertexId>(vertex.VertexId, vertex.VertexId);
-      bool isEqual;
-      int pos = vertecis.BinarySearch(range, out isEqual);
-      if (pos >= 0)
-      {
-        if (pos == vertecis.Count || (pos > 0 && vertecis[pos].Min > vertex.VertexId))
-          --pos;
-        range = vertecis[pos];
-        if (range.Min == vertex.VertexId)
-        {
-          if (range.Max == vertex.VertexId)
-            vertecis.RemoveAt(pos);
-          else
-            vertecis[pos] = new Range<VertexId>(range.Min + 1, range.Max);
-        }
-        else if (range.Max == vertex.VertexId)
-          vertecis[pos] = new Range<VertexId>(range.Min, range.Max + 1);
-        else
-        {
-          vertecis[pos] = new Range<VertexId>(range.Min, vertex.VertexId - 1);
-          vertecis.Insert(pos + 1, new Range<VertexId>(vertex.VertexId + 1, range.Max));
-        }
-      }
+      graph.DeAllocateVertexId(vertex.VertexId);
+      graph.DeAllocateVertexId(vertex.VertexId, vertecis);
     }
 
     public object GetPropertyValue(VertexId vertexId, PropertyType propertyId)
@@ -1231,6 +1085,7 @@ namespace VelocityGraph
       return "VertexType: " + typeName;
     }
 
+    /// <inheritdoc />
     public override void Unpersist(SessionBase session, bool disableFlush = true)
     {
       if (IsPersistent == false)

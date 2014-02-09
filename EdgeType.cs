@@ -107,7 +107,7 @@ namespace VelocityGraph
     /// </summary>
     /// <param name="polymorphic">If true, also include all edges of sub types</param>
     /// <returns>Enumeration of edges of this type</returns>
-    public IEnumerable<Edge> GetEdges(bool polymorphic = true)
+    public IEnumerable<Edge> GetEdges(bool polymorphic = false)
     {
       foreach (var m in edges)
       {
