@@ -93,7 +93,7 @@ namespace VelocityGraph
         valueIndexUnique.AddFast(aValue, element);
     }
 
-    public Vertex GetPropertyVertex(T value, Graph g)
+    public Vertex GetPropertyVertex(T value, Graph g, bool errorIfNotFound = true)
     {
       VertexId elementId = -1;
       if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
@@ -105,14 +105,14 @@ namespace VelocityGraph
       if (elementId == -1)
         return null;
       VertexType vertexType = g.vertexType[TypeId];
-      return vertexType.GetVertex(elementId);
+      return vertexType.GetVertex(elementId, false, errorIfNotFound);
     }
 
-    public override Vertex GetPropertyVertex(IComparable value, Graph g)
+    public override Vertex GetPropertyVertex(IComparable value, Graph g, bool errorIfNotFound = true)
     {
       if (IsVertexProperty == false)
         throw new InvalidTypeIdException();
-      return GetPropertyVertex((T) value, g);
+      return GetPropertyVertex((T) value, g, errorIfNotFound);
     }
 
     public IEnumerable<Vertex> GetPropertyVertices(T value, VertexType vertexType)

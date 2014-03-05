@@ -626,9 +626,9 @@ namespace VelocityGraph
     /// <param name="property"></param>
     /// <param name="v"></param>
     /// <returns>the vertex matching</returns>
-    public Vertex FindVertex(PropertyType property, IComparable v)
+    public Vertex FindVertex(PropertyType property, IComparable v, bool errorIfNotFound = true)
     {
-      return property.GetPropertyVertex(v, this);
+      return property.GetPropertyVertex(v, this, errorIfNotFound);
     }
 
     public long CountVertices()

@@ -60,7 +60,7 @@ namespace VelocityGraph
     }
 
     abstract public Type ValueType { get; }
-    abstract public Vertex GetPropertyVertex(IComparable value, Graph g);
+    abstract public Vertex GetPropertyVertex(IComparable value, Graph g, bool errorIfNotFound = true);
     abstract public IEnumerable<Vertex> GetPropertyVertices(IComparable value, VertexType vertexType);
     abstract public Edge GetPropertyEdge(IComparable value, Graph g);
     abstract public IEnumerable<Edge> GetPropertyEdges(IComparable value, Graph g);
