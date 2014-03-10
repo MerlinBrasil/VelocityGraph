@@ -264,7 +264,7 @@ namespace VelocityGraph
     public List<List<Edge>> Traverse(Vertex toVertex, EdgeType et, int maxHops, bool all)
     {
       Queue<PathInfo> q = new Queue<PathInfo>();
-      SortedSet<int> visited = new SortedSet<int>();
+      SortedSet<Int32> visited = new SortedSet<int>();
 
       visited.Add(VertexId);
       Edge edge;

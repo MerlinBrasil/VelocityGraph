@@ -346,7 +346,7 @@ namespace VelocityGraph
         UInt64 fullId = (UInt64)id;
         EdgeTypeId edgeTypeId = (EdgeTypeId)(fullId >> 32);
         EdgeType et = edgeType[edgeTypeId];
-        EdgeTypeId edgeId = (EdgeTypeId)fullId;
+        EdgeId edgeId = (EdgeId)fullId;
         Edge edge = et.GetEdge(edgeId);
         return edge;
       }
@@ -908,7 +908,7 @@ namespace VelocityGraph
         UInt64 fullId = (UInt64)id;
         VertexTypeId vertexTypeId = (VertexTypeId)(fullId >> 32);
         VertexType vt = vertexType[vertexTypeId];
-        VertexTypeId vertexId = (VertexTypeId)fullId;
+        VertexId vertexId = (VertexId)fullId;
         Vertex vertex = vt.GetVertex(vertexId);
         return vertex;
       }
@@ -919,7 +919,7 @@ namespace VelocityGraph
         {
           VertexTypeId vertexTypeId = (VertexTypeId)(fullId >> 32);
           VertexType vt = vertexType[vertexTypeId];
-          VertexTypeId vertexId = (VertexTypeId)fullId;
+          VertexId vertexId = (VertexId)fullId;
           Vertex vertex = vt.GetVertex(vertexId);
           return vertex;
         }
@@ -1096,13 +1096,15 @@ namespace VelocityGraph
       session.RegisterClass(typeof(VertexType));
       session.RegisterClass(typeof(VelocityDbList<VertexType>));
       session.RegisterClass(typeof(EdgeType));
+      session.RegisterClass(typeof(UnrestrictedEdge));
       session.RegisterClass(typeof(VelocityDbList<Range<ElementId>>));
       session.RegisterClass(typeof(VelocityDbList<EdgeType>));
       session.RegisterClass(typeof(Range<VertexId>));
       session.RegisterClass(typeof(BTreeSet<Range<VertexId>>));
       session.RegisterClass(typeof(BTreeSet<EdgeType>));
       session.RegisterClass(typeof(BTreeSet<EdgeIdVertexId>));
-      session.RegisterClass(typeof(BTreeMap<EdgeId, VelocityDbList<ElementId>>));
+      session.RegisterClass(typeof(BTreeMap<EdgeId, ulong>));
+      session.RegisterClass(typeof(BTreeMap<EdgeId, UnrestrictedEdge>));
       session.RegisterClass(typeof(BTreeMap<string, PropertyType>));
       session.RegisterClass(typeof(BTreeMap<string, EdgeType>));
       session.RegisterClass(typeof(BTreeMap<string, VertexType>));

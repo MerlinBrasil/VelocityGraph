@@ -25,7 +25,8 @@ namespace VelocityGraph
     string typeName;
     TypeId typeId;
     VelocityDbList<Range<EdgeId>> edgeRanges;
-    internal BTreeMap<EdgeId, VertexId[]> edges;
+    internal BTreeMap<EdgeId, UnrestrictedEdge> unrestrictedEdges;
+    internal BTreeMap<EdgeId, UInt64> restrictedEdges;
     internal BTreeMap<string, PropertyType> stringToPropertyType;
     bool birectional;
     VertexType headType;
@@ -39,16 +40,16 @@ namespace VelocityGraph
       if (baseType != null)
         baseType.subType.Add(this);
       this.birectional = birectional;
-      //   if (directed == false)
-      //     edgeHeadToTail = new Dictionary<long, long>();
-      //   edgeTailToHead = new Dictionary<long, long>();
       typeId = aTypeId;
       typeName = aTypeName;
-      edges = new BTreeMap<EdgeId, VertexId[]>(null, graph.Session);
-      stringToPropertyType = new BTreeMap<string, PropertyType>(null, graph.Session);
-      edgeRanges = new VelocityDbList<Range<EdgeId>>();
       this.tailType = tailType;
       this.headType = headType;
+      if (Unrestricted)
+        unrestrictedEdges = new BTreeMap<EdgeId, UnrestrictedEdge>(null, graph.Session);
+      else
+        restrictedEdges = new BTreeMap<EdgeId, ulong>(null, graph.Session);
+      stringToPropertyType = new BTreeMap<string, PropertyType>(null, graph.Session);
+      edgeRanges = new VelocityDbList<Range<EdgeId>>();
     }
 
     /// <summary>
@@ -81,24 +82,30 @@ namespace VelocityGraph
 
     public Edge GetEdge(EdgeId edgeId)
     {
-      VertexId[] headTail;
-      if (edges.TryGetValue(edgeId, out headTail))
+      if (Unrestricted)
       {
-        if (headType != null)
+        UnrestrictedEdge headTail;
+        if (unrestrictedEdges.TryGetValue(edgeId, out headTail))
         {
-          Vertex head = headType.GetVertex(headTail[1]);
-          Vertex tail = tailType.GetVertex(headTail[3]);
-          return new Edge(graph, this, edgeId, head, tail);
-        }
-        else
-        {
-          VertexType vt = graph.vertexType[headTail[0]];
-          Vertex head = vt.GetVertex(headTail[1]);
-          vt = graph.vertexType[headTail[2]];
-          Vertex tail = vt.GetVertex(headTail[3]);
+          VertexType vt = headTail.headVertexType;
+          Vertex head = vt.GetVertex(headTail.headVertexId);
+          vt = headTail.tailVertexType;
+          Vertex tail = vt.GetVertex(headTail.tailVertexId);
           return new Edge(graph, this, edgeId, head, tail);
         }
       }
+      else
+      {
+        UInt64 vertexVertex;
+        if (restrictedEdges.TryGetValue(edgeId, out vertexVertex))
+        {
+          VertexId headId = (VertexId)vertexVertex >> 32;
+          Vertex head = headType.GetVertex(headId);
+          Vertex tail = tailType.GetVertex((VertexId)vertexVertex);
+          return new Edge(graph, this, edgeId, head, tail);
+        }
+      }
+
       throw new EdgeDoesNotExistException();
     }
 
@@ -109,14 +116,26 @@ namespace VelocityGraph
     /// <returns>Enumeration of edges of this type</returns>
     public IEnumerable<Edge> GetEdges(bool polymorphic = false)
     {
-      foreach (var m in edges)
-      {
-        VertexType vt1 = graph.vertexType[m.Value[0]];
-        Vertex head = vt1.GetVertex(m.Value[1]);
-        VertexType vt2 = graph.vertexType[m.Value[2]];
-        Vertex tail = vt2.GetVertex(m.Value[3]);
-        yield return GetEdge(graph, m.Key, tail, head);
-      }
+      if (Unrestricted)
+        foreach (var m in unrestrictedEdges)
+        {
+          VertexType vt1 = m.Value.headVertexType;
+          Vertex head = vt1.GetVertex(m.Value.headVertexId);
+          VertexType vt2 = m.Value.tailVertexType;
+          Vertex tail = vt2.GetVertex(m.Value.tailVertexId);
+          yield return GetEdge(graph, m.Key, tail, head);
+        }
+      else
+        foreach (var m in restrictedEdges)
+        {
+          VertexType vt1 = headType;
+          VertexId vId = (VertexId) m.Value >> 32;
+          Vertex head = vt1.GetVertex(vId);
+          VertexType vt2 = tailType;
+          vId = (VertexId) m.Value;
+          Vertex tail = vt2.GetVertex(vId);
+          yield return GetEdge(graph, m.Key, tail, head);
+        }
       if (polymorphic)
       {
         foreach (EdgeType et in subType)
@@ -135,10 +154,13 @@ namespace VelocityGraph
 
     public Edge GetEdge(Graph g, EdgeId edgeId, Vertex tailVertex, Vertex headVertex)
     {
-      if (edges.Contains(edgeId))
+      if (Unrestricted)
       {
-        return new Edge(g, this, edgeId, headVertex, tailVertex);
+        if (unrestrictedEdges.Contains(edgeId))
+          return new Edge(g, this, edgeId, headVertex, tailVertex);
       }
+      else if (restrictedEdges.Contains(edgeId))
+        return new Edge(g, this, edgeId, headVertex, tailVertex);
       throw new EdgeDoesNotExistException();
     }
 
@@ -338,7 +360,15 @@ namespace VelocityGraph
       if (headType != null && head.VertexType != headType)
         throw new InvalidHeadVertexTypeException();
       EdgeId eId = NewEdgeId(g);
-      edges.AddFast(eId, new ElementId[] { head.VertexType.TypeId, head.VertexId, tail.VertexType.TypeId, tail.VertexId });
+      if (Unrestricted)
+        unrestrictedEdges.AddFast(eId, new UnrestrictedEdge { headVertexType = head.VertexType, headVertexId = head.VertexId, tailVertexType = tail.VertexType, tailVertexId = tail.VertexId });
+      else
+      {
+        UInt64 vertexVertex = (UInt64)head.VertexId;
+        vertexVertex = vertexVertex << 32;
+        vertexVertex += (UInt64)tail.VertexId;
+        restrictedEdges.AddFast(eId, vertexVertex);
+      }
       Edge edge = new Edge(g, this, eId, head, tail);
       if (birectional)
       {
@@ -352,7 +382,14 @@ namespace VelocityGraph
 
     public void RemoveEdge(Edge edge)
     {
-      edges.Remove(edge.EdgeId);
+      if (Unrestricted)
+      {
+        UnrestrictedEdge unrestrictedEdge = unrestrictedEdges[edge.EdgeId];
+        unrestrictedEdge.Unpersist(graph.Session);
+        unrestrictedEdges.Remove(edge.EdgeId);
+      }
+      else
+        restrictedEdges.Remove(edge.EdgeId);
       if (birectional)
       {
         edge.Tail.VertexType.RemoveTailToHeadEdge(edge);
@@ -453,6 +490,14 @@ namespace VelocityGraph
     public override string ToString()
     {
       return "EdgeType: " + typeName;
+    }
+
+    public bool Unrestricted
+    {
+      get
+      {
+        return headType == null;
+      }
     }
   }
 }

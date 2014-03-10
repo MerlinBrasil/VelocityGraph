@@ -62,6 +62,7 @@
   <ItemGroup>
     <Compile Include="Edge.cs" />
     <Compile Include="EdgeDoesNotExistException.cs" />
+    <Compile Include="UnrestrictedEdge.cs" />
     <Compile Include="EdgeType.cs" />
     <Compile Include="Element.cs" />
     <Compile Include="InvalidHeadVertexTypeException.cs" />

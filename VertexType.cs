@@ -116,6 +116,12 @@ namespace VelocityGraph
           map = new BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>(null, session);
           innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
           set = new BTreeSet<EdgeIdVertexId>(null, session);
+          //if (IsPersistent)
+          //{
+          //  session.Persist(set, 1000);
+          //  session.Persist(innerMap, 1000);
+          //  session.Persist(map, 1000);
+          //}
           innerMap.AddFast(tail.VertexId, set);
           map.AddFast(head.VertexType, innerMap);
           tailToHeadEdges.AddFast(edgeType, map);
@@ -125,12 +131,21 @@ namespace VelocityGraph
         {
           innerMap = new BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>(null, session);
           set = new BTreeSet<EdgeIdVertexId>(null, session);
+          //if (IsPersistent)
+          //{
+          //  session.Persist(set, 1000);
+          //  session.Persist(innerMap, 1000);
+          //}
           innerMap.AddFast(tail.VertexId, set);
           map.AddFast(head.VertexType, innerMap);
         }
         else if (!innerMap.TryGetValue(tail.VertexId, out set))
         {
           set = new BTreeSet<EdgeIdVertexId>(null, session);
+          //if (IsPersistent)
+          //{
+          //  session.Persist(set, 1000);
+          //}
           innerMap.AddFast(tail.VertexId, set);
         }
         set.AddFast(edgeVertexId(edge, head.VertexId));
@@ -206,31 +221,62 @@ namespace VelocityGraph
       Dictionary<Vertex, Edge> result = new Dictionary<Vertex, Edge>(10);
       if (etype.Directed == false)
       {
-        foreach (var pair in etype.edges)
+        if (etype.Unrestricted)
         {
-          int[] ids = pair.Value;
-          bool headSameVertex = vertex1.VertexType.TypeId == ids[0] && vertex1.VertexId == ids[1];
-          bool tailSameVertex = vertex1.VertexType.TypeId == ids[2] && vertex1.VertexId == ids[3];
-          Vertex other;
-          if (headSameVertex)
+          foreach (var pair in etype.unrestrictedEdges)
           {
-            VertexType vt = g.vertexType[ids[2]];
-            other = vt.GetVertex(ids[3]);
-          }
-          else
-          {
-            if (tailSameVertex == false)
-              continue;
-            VertexType vt = g.vertexType[ids[0]];
-            other = vt.GetVertex(ids[1]);
-          }
+            UnrestrictedEdge edgeStruct = pair.Value;
+            bool headSameVertex = vertex1.VertexType == edgeStruct.headVertexType && vertex1.VertexId == edgeStruct.headVertexId;
+            bool tailSameVertex = vertex1.VertexType == edgeStruct.tailVertexType && vertex1.VertexId == edgeStruct.tailVertexId;
+            Vertex other;
+            if (headSameVertex)
+            {
+              VertexType vt = edgeStruct.tailVertexType;
+              other = vt.GetVertex(edgeStruct.tailVertexId);
+            }
+            else
+            {
+              if (tailSameVertex == false)
+                continue;
+              VertexType vt = edgeStruct.headVertexType;
+              other = vt.GetVertex(edgeStruct.headVertexId);
+            }
 #if EdgeDebug
           Edge edge = etype.GetEdge(g, pair.Key, other, vertex1);
 #else
-          Edge edge = new Edge(g, etype, pair.Key, vertex1, other);
+            Edge edge = new Edge(g, etype, pair.Key, vertex1, other);
 #endif
-          result.Add(other, edge);
+            result.Add(other, edge);
+          }
         }
+        else
+          foreach (var pair in etype.restrictedEdges)
+          {
+            UInt64 vertexVertex = pair.Value;
+            VertexId headVertexId = (VertexId) vertexVertex >> 32;
+            VertexId tailVertexId = (Int32) (UInt32)vertexVertex;
+            bool headSameVertex = vertex1.VertexType == etype.HeadType && vertex1.VertexId == headVertexId;
+            bool tailSameVertex = vertex1.VertexType == etype.TailType && vertex1.VertexId == tailVertexId;
+            Vertex other;
+            if (headSameVertex)
+            {
+              VertexType vt = etype.TailType;
+              other = vt.GetVertex(tailVertexId);
+            }
+            else
+            {
+              if (tailSameVertex == false)
+                continue;
+              VertexType vt = etype.HeadType;
+              other = vt.GetVertex(headVertexId);
+            }
+#if EdgeDebug
+          Edge edge = etype.GetEdge(g, pair.Key, other, vertex1);
+#else
+            Edge edge = new Edge(g, etype, pair.Key, vertex1, other);
+#endif
+            result.Add(other, edge);
+          }
       }
       else
       {
@@ -891,8 +937,8 @@ namespace VelocityGraph
     public IEnumerable<VertexId> GetVerticeIds()
     {
       foreach (Range<VertexId> range in vertecis)
-        foreach (VertexId vId in Enumerable.Range((int)range.Min, (int)range.Max - range.Min + 1))
-          yield return vId;
+        foreach (int vId in Enumerable.Range((int)range.Min, (int)range.Max - range.Min + 1))
+          yield return (VertexId) vId;
     }
 
     public IEnumerable<IVertex> GetVertices(Graph g, EdgeType etype, Vertex vertex1, Direction dir)
