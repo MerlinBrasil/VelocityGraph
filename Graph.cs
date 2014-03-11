@@ -1111,6 +1111,9 @@ namespace VelocityGraph
       session.RegisterClass(typeof(BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>));
       session.RegisterClass(typeof(BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>));
       session.RegisterClass(typeof(BTreeMap<EdgeType, BTreeMap<VertexType, BTreeMap<VertexId, BTreeSet<EdgeIdVertexId>>>>));
+      session.RegisterClass(typeof(BTreeMap<string, BTreeSet<ElementId>>));
+      session.RegisterClass(typeof(BTreeMap<int, BTreeSet<ElementId>>));
+      session.RegisterClass(typeof(BTreeMap<Int64, BTreeSet<ElementId>>));
       session.RegisterClass(typeof(PropertyTypeT<bool>));
       session.RegisterClass(typeof(PropertyTypeT<int>));
       session.RegisterClass(typeof(PropertyTypeT<long>));

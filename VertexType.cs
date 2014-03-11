@@ -410,25 +410,25 @@ namespace VelocityGraph
         switch (dt)
         {
           case DataType.Boolean:
-            aType = new PropertyTypeT<bool>(true, typeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<bool>(true, typeId, pos, name, kind, graph);
             break;
           case DataType.Integer:
-            aType = new PropertyTypeT<int>(true, typeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<int>(true, typeId, pos, name, kind, graph);
             break;
           case DataType.Long:
-            aType = new PropertyTypeT<long>(true, typeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<long>(true, typeId, pos, name, kind, graph);
             break;
           case DataType.Double:
-            aType = new PropertyTypeT<double>(true, typeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<double>(true, typeId, pos, name, kind, graph);
             break;
           case DataType.DateTime:
-            aType = new PropertyTypeT<DateTime>(true, typeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<DateTime>(true, typeId, pos, name, kind, graph);
             break;
           case DataType.String:
-            aType = new PropertyTypeT<string>(true, typeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<string>(true, typeId, pos, name, kind, graph);
             break;
           case DataType.Object:
-            aType = new PropertyTypeT<IComparable>(true, typeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<IComparable>(true, typeId, pos, name, kind, graph);
             break;
         }
         graph.propertyType[pos] = aType;

@@ -223,25 +223,25 @@ namespace VelocityGraph
         switch (dt)
         {
           case DataType.Boolean:
-            aType = new PropertyTypeT<bool>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<bool>(false, this.TypeId, pos, name, kind, graph);
             break;
           case DataType.Integer:
-            aType = new PropertyTypeT<int>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<int>(false, this.TypeId, pos, name, kind, graph);
             break;
           case DataType.Long:
-            aType = new PropertyTypeT<long>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<long>(false, this.TypeId, pos, name, kind, graph);
             break;
           case DataType.Double:
-            aType = new PropertyTypeT<double>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<double>(false, this.TypeId, pos, name, kind, graph);
             break;
           case DataType.DateTime:
-            aType = new PropertyTypeT<DateTime>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<DateTime>(false, this.TypeId, pos, name, kind, graph);
             break;
           case DataType.String:
-            aType = new PropertyTypeT<string>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<string>(false, this.TypeId, pos, name, kind, graph);
             break;
           case DataType.Object:
-            aType = new PropertyTypeT<IComparable>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<IComparable>(false, this.TypeId, pos, name, kind, graph);
             break;
         }
         graph.propertyType[pos] = aType;
@@ -268,28 +268,28 @@ namespace VelocityGraph
         switch (Type.GetTypeCode(value.GetType()))
         {
           case TypeCode.Boolean:
-            aType = new PropertyTypeT<bool>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<bool>(false, this.TypeId, pos, name, kind, graph);
             break;
           case TypeCode.Int32:
-            aType = new PropertyTypeT<int>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<int>(false, this.TypeId, pos, name, kind, graph);
             break;
           case TypeCode.Int64:
-            aType = new PropertyTypeT<long>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<long>(false, this.TypeId, pos, name, kind, graph);
             break;
           case TypeCode.Single:
-            aType = new PropertyTypeT<Single>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<Single>(false, this.TypeId, pos, name, kind, graph);
             break;
           case TypeCode.Double:
-            aType = new PropertyTypeT<double>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<double>(false, this.TypeId, pos, name, kind, graph);
             break;
           case TypeCode.DateTime:
-            aType = new PropertyTypeT<DateTime>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<DateTime>(false, this.TypeId, pos, name, kind, graph);
             break;
           case TypeCode.String:
-            aType = new PropertyTypeT<string>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<string>(false, this.TypeId, pos, name, kind, graph);
             break;
           case TypeCode.Object:
-            aType = new PropertyTypeT<IComparable>(false, this.TypeId, pos, name, kind, Session);
+            aType = new PropertyTypeT<IComparable>(false, this.TypeId, pos, name, kind, graph);
             break;
         }
         graph.propertyType[pos] = aType;

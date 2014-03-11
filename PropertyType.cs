@@ -14,17 +14,19 @@ namespace VelocityGraph
   [Serializable]
   abstract public partial class PropertyType : OptimizedPersistable
   {
+    protected Graph graph;
     string propertyName;
     TypeId typeId;
     PropertyId propertyId;
     bool isVertexProperty;
 
-    protected PropertyType(bool isVertexProp, TypeId typeId, PropertyId propertyId, string name)
+    protected PropertyType(bool isVertexProp, TypeId typeId, PropertyId propertyId, string name, Graph graph)
     {
       this.typeId = typeId;
       isVertexProperty = isVertexProp;
       this.propertyId = propertyId;
       propertyName = name;
+      this.graph = graph;
     }
 
     public PropertyId PropertyId

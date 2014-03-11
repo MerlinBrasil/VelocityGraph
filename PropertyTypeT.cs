@@ -19,20 +19,20 @@ namespace VelocityGraph
   public class PropertyTypeT<T> : PropertyType where T : IComparable
   {
     BTreeMap<ElementId, T> propertyValue;
-    BTreeMap<T, VelocityDbList<ElementId>> valueIndex;
+    BTreeMap<T, BTreeSet<ElementId>> valueIndex;
     BTreeMap<T, ElementId> valueIndexUnique;
 
-    internal PropertyTypeT(bool isVertexProp, TypeId typeId, PropertyId propertyId, string name, PropertyKind kind, SessionBase session)
-      : base(isVertexProp, typeId, propertyId, name)
+    internal PropertyTypeT(bool isVertexProp, TypeId typeId, PropertyId propertyId, string name, PropertyKind kind, Graph graph)
+      : base(isVertexProp, typeId, propertyId, name, graph)
     {
-      propertyValue = new BTreeMap<ElementId, T>(null, session);
+      propertyValue = new BTreeMap<ElementId, T>(null, graph.Session);
       switch (kind)
       {
         case PropertyKind.Indexed:
-          valueIndex = new BTreeMap<T, VelocityDbList<ElementId>>(null, session);
+          valueIndex = new BTreeMap<T, BTreeSet<ElementId>>(null, graph.Session);
           break;
         case PropertyKind.Unique:
-          valueIndexUnique = new BTreeMap<T, ElementId>(null, session);
+          valueIndexUnique = new BTreeMap<T, ElementId>(null, graph.Session);
           break;
       }
     }
@@ -53,7 +53,7 @@ namespace VelocityGraph
         {
           if (valueIndex.TryGetKey(pv, ref pv))
           {
-            VelocityDbList<ElementId> oidArray = valueIndex[pv];
+            BTreeSet<ElementId> oidArray = valueIndex[pv];
             if (oidArray.Count > 1)
               oidArray.Remove(oid);
             else
@@ -73,12 +73,10 @@ namespace VelocityGraph
       propertyValue[element] = aValue;
       if (valueIndex != null)
       {
-        VelocityDbList<ElementId> oidArray;
+        BTreeSet<ElementId> oidArray;
         if (!valueIndex.TryGetKey(aValue, ref aValue))
         {
-          oidArray = new VelocityDbList<ElementId>();
-          if (IsPersistent)
-            oidArray.Persist(Session, this);
+          oidArray = new BTreeSet<ElementId>(null, graph.Session);
           oidArray.Add(element);
           valueIndex.AddFast(aValue, oidArray);
         }
@@ -98,9 +96,9 @@ namespace VelocityGraph
       VertexId elementId = -1;
       if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
       {
-        VelocityDbList<ElementId> elementIds;
+        BTreeSet<ElementId> elementIds;
         if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
-          elementId = elementIds[0];
+          elementId = elementIds.First();
       }
       if (elementId == -1)
         return null;
@@ -120,7 +118,7 @@ namespace VelocityGraph
       VertexId elementId = -1;
       if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
       {
-        VelocityDbList<ElementId> elementIds;
+        BTreeSet<ElementId> elementIds;
         if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
           foreach (ElementId eId in elementIds)
             yield return vertexType.GetVertex(eId);
@@ -141,9 +139,9 @@ namespace VelocityGraph
       EdgeId elementId = -1;
       if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
       {
-        VelocityDbList<ElementId> elementIds;
+        BTreeSet<ElementId> elementIds;
         if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
-          elementId = elementIds[0];
+          elementId = elementIds.First();
       }
       if (elementId == -1)
         return null;
@@ -162,7 +160,7 @@ namespace VelocityGraph
       EdgeType edgeType = g.edgeType[TypeId];
       if (valueIndexUnique == null || valueIndexUnique.TryGetValue(value, out elementId) == false)
       {
-        VelocityDbList<ElementId> elementIds;
+        BTreeSet<ElementId> elementIds;
         if (valueIndex != null && valueIndex.TryGetValue(value, out elementIds))
           foreach (ElementId eId in elementIds)
             yield return edgeType.GetEdge(eId);
