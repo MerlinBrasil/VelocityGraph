@@ -12,12 +12,18 @@ namespace VelocityGraph
   public abstract class Element : DictionaryElement
   {
     protected readonly ElementId id;
-    protected readonly Graph graph;
 
-    protected Element(ElementId id, Graph graph)
+    protected Element(ElementId id, Graph graph):base(graph)
     {
-      this.graph = graph;
       this.id = id;
+    }
+
+    protected Graph Graph
+    {
+      get
+      {
+        return (Graph)base.Graph;
+      }
     }
 
     /// <summary>
