@@ -353,13 +353,13 @@ namespace VelocityGraph
       return eId;
     }
 
-    public Edge NewEdge(Graph g, Vertex tail, Vertex head, SessionBase session)
+    public Edge NewEdge(Vertex tail, Vertex head)
     {
       if (tailType != null && tail.VertexType != tailType)
         throw new InvalidTailVertexTypeException();
       if (headType != null && head.VertexType != headType)
         throw new InvalidHeadVertexTypeException();
-      EdgeId eId = NewEdgeId(g);
+      EdgeId eId = NewEdgeId(graph);
       if (Unrestricted)
         unrestrictedEdges.AddFast(eId, new UnrestrictedEdge { headVertexType = head.VertexType, headVertexId = head.VertexId, tailVertexType = tail.VertexType, tailVertexId = tail.VertexId });
       else
@@ -369,14 +369,14 @@ namespace VelocityGraph
         vertexVertex += (UInt64)tail.VertexId;
         restrictedEdges.AddFast(eId, vertexVertex);
       }
-      Edge edge = new Edge(g, this, eId, head, tail);
+      Edge edge = new Edge(graph, this, eId, head, tail);
       if (birectional)
       {
-        tail.VertexType.NewTailToHeadEdge(this, edge, tail, head, session);
-        head.VertexType.NewHeadToTailEdge(this, edge, tail, head, session);
+        tail.VertexType.NewTailToHeadEdge(this, edge, tail, head, Session);
+        head.VertexType.NewHeadToTailEdge(this, edge, tail, head, Session);
       }
       else
-        tail.VertexType.NewTailToHeadEdge(this, edge, tail, head, session);
+        tail.VertexType.NewTailToHeadEdge(this, edge, tail, head, Session);
       return edge;
     }
 

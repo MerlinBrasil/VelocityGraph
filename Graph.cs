@@ -307,7 +307,7 @@ namespace VelocityGraph
         et = edgeType[0];
       Vertex tail = outVertex as Vertex;
       Vertex head = inVertex as Vertex;
-      return et.NewEdge(this, tail, head, Session);
+      return et.NewEdge(tail, head);
     }
 
     /// <summary>
@@ -572,7 +572,7 @@ namespace VelocityGraph
     /// <returns>Unique OID of the new edge instance.</returns>
     public Edge NewEdge(EdgeType edgeType, Vertex tail, Vertex head)
     {
-      return edgeType.NewEdge(this, tail, head, Session);
+      return edgeType.NewEdge(tail, head);
     }
 
     /// <summary>

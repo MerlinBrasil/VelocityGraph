@@ -49,7 +49,10 @@
     </Reference>
     <Reference Include="Frontenac.Blueprints, Version=2.3.0.0, Culture=neutral, PublicKeyToken=f8f0b8cb1a55f367, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Frontenac.Blueprints.2.3.8\lib\net40\Frontenac.Blueprints.dll</HintPath>
+      <HintPath>..\packages\Frontenac.Blueprints.2.3.9\lib\net40\Frontenac.Blueprints.dll</HintPath>
+    </Reference>
+    <Reference Include="Frontenac.Gremlinq">
+      <HintPath>..\packages\Frontenac.Blueprints.2.3.9\lib\net40\Frontenac.Gremlinq.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
